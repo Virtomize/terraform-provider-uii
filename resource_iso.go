@@ -113,36 +113,6 @@ func parseNetworksFromSchema(n *schema.ResourceData) ([]Network, error) {
 	return networks, nil
 }
 
-func valueOrDefault(dict map[string]interface{}, key string, defaultValue interface{}) interface{} {
-	if val, ok := dict[key]; ok {
-		return val
-	}
-
-	return defaultValue
-}
-
-func dataValueOrDefault(d *schema.ResourceData, key string, defaultValue interface{}) interface{} {
-	v := d.Get(key)
-	if v == nil {
-		return defaultValue
-	}
-	return v
-}
-
-func valueToStringListOrDefault(dict map[string]interface{}, key string, defaultValue []string) []string {
-	if val, ok := dict[key]; ok {
-		var result []string
-		list := val.([]interface{})
-		for _, v := range list {
-			result = append(result, v.(string))
-		}
-
-		return result
-	}
-
-	return defaultValue
-}
-
 func resourceIsoRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*clientWithStorage)
 
@@ -170,12 +140,15 @@ func flattenNetworks(networks []Network) interface{} {
 			oi := make(map[string]interface{})
 
 			oi[dhcpKey] = network.DHCP
-			oi[domainKey] = network.Domain
-			oi[macKey] = network.MAC
-			oi[ipNetKey] = network.IPNet
-			oi[gatewayKey] = network.Gateway
-			oi[dnsKey] = network.DNS
 			oi[noInternetKey] = network.NoInternet
+
+			addIfNotDefaultValue(domainKey, &oi, network.Domain)
+			addIfNotDefaultValue(macKey, &oi, network.MAC)
+			addIfNotDefaultValue(ipNetKey, &oi, network.IPNet)
+			addIfNotDefaultValue(gatewayKey, &oi, network.Gateway)
+
+			oi[dnsKey] = network.DNS
+
 			ois[i] = oi
 		}
 
@@ -183,6 +156,12 @@ func flattenNetworks(networks []Network) interface{} {
 	}
 
 	return make([]interface{}, 0)
+}
+
+func addIfNotDefaultValue(key string, m *map[string]interface{}, value string) {
+	if value != "" {
+		(*m)[key] = value
+	}
 }
 
 func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -241,4 +220,33 @@ func validateCIDR(v interface{}, path cty.Path) diag.Diagnostics {
 		diags = append(diags, diag)
 	}
 	return diags
+}
+
+func valueOrDefault(dict map[string]interface{}, key string, defaultValue interface{}) interface{} {
+	if val, ok := dict[key]; ok {
+		return val
+	}
+
+	return defaultValue
+}
+
+func dataValueOrDefault(d *schema.ResourceData, key string, defaultValue interface{}) interface{} {
+	v := d.Get(key)
+	if v == nil {
+		return defaultValue
+	}
+	return v
+}
+func valueToStringListOrDefault(dict map[string]interface{}, key string, defaultValue []string) []string {
+	if val, ok := dict[key]; ok {
+		var result []string
+		list := val.([]interface{})
+		for _, v := range list {
+			result = append(result, v.(string))
+		}
+
+		return result
+	}
+
+	return defaultValue
 }
