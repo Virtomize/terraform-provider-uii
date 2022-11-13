@@ -15,13 +15,13 @@ const STORAGE_ENV_NAME = "VIRTOMIZE_ISO_CACHE"
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"apitoken": &schema.Schema{
+			"apitoken": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(TOKEN_ENV_NAME, nil),
 			},
 
-			"localstorage": &schema.Schema{
+			"localstorage": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(TOKEN_ENV_NAME, nil),

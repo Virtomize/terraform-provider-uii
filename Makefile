@@ -1,32 +1,64 @@
-TEST?=$$(go list ./... | grep -v 'vendor')
+GO ?= go
+GOLINT ?= golint
+GOSEC ?= gosec
+VERSION ?=$(shell git describe --tags --always)
+PACKAGES = $(shell go list -f {{.Dir}} ./... | grep -v /vendor/)
+DATE = $(shell date -R)
 HOSTNAME=virtomize.com
 NAMESPACE=uii
 NAME=virtomize
 BINARY=terraform-provider-${NAME}
-VERSION=0.0.1
 OS_ARCH=darwin_amd64
 
-default: install
+.PHONY: help
+help: ## Show this help.
+	@echo "Targets:"
+	@grep -E '^[a-zA-Z\/_-]*:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\t%-20s: %s\n", $$1, $$2}'
 
-build:
+
+.PHONY: build
+build: ## build os executable.
 ifeq ($(OS),Windows_NT)
 	go build -o ${BINARY}.exe
 else
 	go build -o ${BINARY}
 endif
 
+.PHONY: src-fmt
+src-fmt: ## format source code.
+	gofmt -s -w ${PACKAGES}
 
-release:
+.PHONY: release
+release: ## release terraform build.
 	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
 
-install: build
-
+.PHONY: install
+install: build ## build terraform module.
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 
-test:
-	go test -i $(TEST) || exit 1
-	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
+.PHONY: test
+test: ## Run tests.
+	go test -race ./... -v -cover --coverprofile=coverage.out
 
+.PHONY: cover
+cover: ## Show test coverage.
+	$(GO) tool cover -html=coverage.out
+
+.PHONY: gosec
+gosec: ## Run gosec static code security checker.
+	$(GOSEC) ./...
+
+.PHONY: testacc
 testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+
+.PHONY: install-tools
+install-tools: ## install dependencies if needed.
+	$(GO) install github.com/securego/gosec/v2/cmd/gosec@latest
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin latest
+
+
+
+
+
