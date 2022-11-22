@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
+	"os"
+	"path"
 
 	client "github.com/Virtomize/uii-go-api"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const TOKEN_ENV_NAME = "VIRTOMIZE_API_TOKEN"
-const STORAGE_ENV_NAME = "VIRTOMIZE_ISO_CACHE"
+const TokenEnvName = "VIRTOMIZE_API_TOKEN"
+const StorageEnvName = "VIRTOMIZE_ISO_CACHE"
 
 // Provider -
 func Provider() *schema.Provider {
@@ -17,14 +19,14 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"apitoken": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(TOKEN_ENV_NAME, nil),
+				Optional:    false,
+				DefaultFunc: schema.EnvDefaultFunc(TokenEnvName, nil),
 			},
 
 			"localstorage": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(TOKEN_ENV_NAME, nil),
+				DefaultFunc: schema.EnvDefaultFunc(StorageEnvName, nil),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -34,7 +36,7 @@ func Provider() *schema.Provider {
 	}
 }
 
-func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	token := d.Get("apitoken").(string)
 
 	// Warning or errors can be collected in a slice type
@@ -44,7 +46,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "No token provided to create Virtomize client",
-			Detail:   "Unable to retrieve token for authenticated Virtomize client. When using environment variables use " + TOKEN_ENV_NAME,
+			Detail:   "Unable to retrieve token for authenticated Virtomize client. When using environment variables use " + TokenEnvName,
 		})
 
 		return nil, diags
@@ -61,5 +63,13 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		return nil, diags
 	}
 
-	return &clientWithStorage{VirtomizeClient: c, StorageFolder: "C:\\Tools\\Terraform\\Isos\\"}, diags
+	defaultStoragePath := path.Join(os.TempDir(), "uiiterraform")
+	_ = os.Mkdir(defaultStoragePath, os.ModePerm)
+
+	localStorageOverride := d.Get("localstorage")
+	if localStorageOverride != nil {
+		defaultStoragePath = localStorageOverride.(string)
+	}
+
+	return &clientWithStorage{VirtomizeClient: c, StorageFolder: defaultStoragePath, TimeProvider: defaultTimeProvider{}}, diags
 }

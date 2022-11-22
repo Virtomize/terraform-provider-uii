@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type Iso struct {
 	Name         string
 	Distribution string
@@ -33,5 +35,6 @@ type BuildOpts struct {
 type StoredIso struct {
 	Id string
 	Iso
-	LocalPath string
+	LocalPath    string
+	CreationTime time.Time
 }

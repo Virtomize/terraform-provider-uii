@@ -92,7 +92,7 @@ func parseNetworksFromSchema(n *schema.ResourceData) ([]Network, error) {
 			gateway := valueOrDefault(d, gatewayKey, "").(string)
 			dns := valueToStringListOrDefault(d, dnsKey, []string{})
 
-			net := Network{
+			network := Network{
 				DHCP:       dhcp,
 				Domain:     domain,
 				MAC:        mac,
@@ -102,7 +102,7 @@ func parseNetworksFromSchema(n *schema.ResourceData) ([]Network, error) {
 				NoInternet: noInternet,
 			}
 
-			networks = append(networks, net)
+			networks = append(networks, network)
 		}
 	}
 
@@ -113,7 +113,7 @@ func parseNetworksFromSchema(n *schema.ResourceData) ([]Network, error) {
 	return networks, nil
 }
 
-func resourceIsoRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceIsoRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*clientWithStorage)
 
 	isoId := d.Id()
@@ -186,7 +186,7 @@ func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	return resourceIsoRead(ctx, d, m)
 }
 
-func resourceOrderDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceOrderDelete(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*clientWithStorage)
 
 	// Warning or errors can be collected in a slice type
@@ -206,18 +206,18 @@ func resourceOrderDelete(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-func validateCIDR(v interface{}, path cty.Path) diag.Diagnostics {
+func validateCIDR(v interface{}, _ cty.Path) diag.Diagnostics {
 	value := v.(string)
 	_, _, err := net.ParseCIDR(value)
 
 	var diags diag.Diagnostics
 	if err != nil {
-		diag := diag.Diagnostic{
+		diagnostic := diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "provide CIDR",
 			Detail:   fmt.Sprintf("ip_net requires and CIDR (example: 192.168. 129.23/17) %s", value),
 		}
-		diags = append(diags, diag)
+		diags = append(diags, diagnostic)
 	}
 	return diags
 }
