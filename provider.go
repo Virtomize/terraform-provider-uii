@@ -19,7 +19,7 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"apitoken": {
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc(TokenEnvName, nil),
 			},
 
