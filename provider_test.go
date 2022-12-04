@@ -36,7 +36,6 @@ func TestProviderBuild(t *testing.T) {
 
 	uut := clientWithStorage{
 		VirtomizeClient: uuiClient,
-		StorageFolder:   "C:/Tools/Terraform/Isos/",
 		TimeProvider:    defaultTimeProvider{},
 	}
 	iso, err := uut.CreateIso(Iso{Name: "debian_iso", Distribution: "debian", HostName: "host", Version: "11", Networks: []Network{{
@@ -54,7 +53,6 @@ func TestProviderBuildDelete(t *testing.T) {
 
 	uut := clientWithStorage{
 		VirtomizeClient: uuiClient,
-		StorageFolder:   "C:/Tools/Terraform/Isos/",
 		TimeProvider:    defaultTimeProvider{},
 	}
 	iso, err := uut.CreateIso(Iso{Name: "debian_iso", Distribution: "debian", HostName: "host", Version: "11", Networks: []Network{{
