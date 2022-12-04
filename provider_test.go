@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"os"
 	"testing"
 )
@@ -34,7 +35,10 @@ func TestProviderBuild(t *testing.T) {
 	uuiClient, err := client.NewClient(getToken())
 	assert.NoError(t, err)
 
-	storage := createDefaultStoragePath()
+	storage, err := os.MkdirTemp("", "uii_unittest")
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer os.RemoveAll(storage)
 
 	uut := clientWithStorage{
@@ -55,7 +59,10 @@ func TestProviderBuildDelete(t *testing.T) {
 	uuiClient, err := client.NewClient(getToken())
 	assert.NoError(t, err)
 
-	storage := createDefaultStoragePath()
+	storage, err := os.MkdirTemp("", "uii_unittest")
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer os.RemoveAll(storage)
 
 	uut := clientWithStorage{

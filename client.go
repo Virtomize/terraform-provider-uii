@@ -7,6 +7,7 @@ import (
 	"github.com/boltdb/bolt"
 	"log"
 	"os"
+	"path"
 	"time"
 )
 
@@ -37,11 +38,13 @@ func (p defaultTimeProvider) Now() time.Time {
 
 // CreateIso creates a new iso resource
 func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
-	if s.StorageFolder != "" {
-		s.StorageFolder = createDefaultStoragePath()
+	if s.StorageFolder == "" {
+		err := fmt.Errorf("storage path not set")
+		log.Fatal(err)
+		return StoredIso{}, err
 	}
 
-	db, err := setupDB(s.StorageFolder + "my.db")
+	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
 		log.Fatal(err)
 		return StoredIso{}, err
