@@ -11,7 +11,7 @@ import (
 )
 
 func getToken() string {
-	return os.Getenv("UIITOKEN")
+	return os.Getenv(TokenEnvName)
 }
 
 func createProvider() *schema.Provider {
