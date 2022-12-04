@@ -66,7 +66,7 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 	defaultStoragePath := ""
 
 	localStorageOverride := d.Get("localstorage")
-	if localStorageOverride != nil {
+	if localStorageOverride != nil && localStorageOverride != "" {
 		defaultStoragePath = localStorageOverride.(string)
 	} else {
 		defaultStoragePath = createDefaultStoragePath()
