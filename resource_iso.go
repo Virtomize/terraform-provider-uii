@@ -26,8 +26,11 @@ func resourceIsoCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	d.SetId(o.Id)
-	resourceIsoRead(ctx, d, m)
+	readDiagnostics := resourceIsoRead(ctx, d, m)
 
+	for _, d := range readDiagnostics {
+		diags = append(diags, d)
+	}
 	return diags
 }
 
@@ -147,7 +150,9 @@ func flattenNetworks(networks []Network) interface{} {
 			addIfNotDefaultValue(ipNetKey, &oi, network.IPNet)
 			addIfNotDefaultValue(gatewayKey, &oi, network.Gateway)
 
-			oi[dnsKey] = network.DNS
+			if network.DNS != nil {
+				oi[dnsKey] = network.DNS
+			}
 
 			ois[i] = oi
 		}
@@ -168,20 +173,16 @@ func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	c := m.(*clientWithStorage)
 
 	isoId := d.Id()
-
-	if d.HasChange("name") || d.HasChange("os") {
-		iso, err := parseIsoFromSchema(d)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		err = c.UpdateIso(isoId, iso)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		d.Set(lastUpdatedKey, time.Now().Format(time.RFC850))
+	iso, err := parseIsoFromSchema(d)
+	if err != nil {
+		return diag.FromErr(err)
 	}
+
+	err = c.UpdateIso(isoId, iso)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.Set(lastUpdatedKey, time.Now().Format(time.RFC850))
 
 	return resourceIsoRead(ctx, d, m)
 }
@@ -237,6 +238,7 @@ func dataValueOrDefault(d *schema.ResourceData, key string, defaultValue interfa
 	}
 	return v
 }
+
 func valueToStringListOrDefault(dict map[string]interface{}, key string, defaultValue []string) []string {
 	if val, ok := dict[key]; ok {
 		var result []string
