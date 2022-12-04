@@ -34,8 +34,12 @@ func TestProviderBuild(t *testing.T) {
 	uuiClient, err := client.NewClient(getToken())
 	assert.NoError(t, err)
 
+	storage := createDefaultStoragePath()
+	defer os.RemoveAll(storage)
+
 	uut := clientWithStorage{
 		VirtomizeClient: uuiClient,
+		StorageFolder:   storage,
 		TimeProvider:    defaultTimeProvider{},
 	}
 	iso, err := uut.CreateIso(Iso{Name: "debian_iso", Distribution: "debian", HostName: "host", Version: "11", Networks: []Network{{
@@ -51,8 +55,12 @@ func TestProviderBuildDelete(t *testing.T) {
 	uuiClient, err := client.NewClient(getToken())
 	assert.NoError(t, err)
 
+	storage := createDefaultStoragePath()
+	defer os.RemoveAll(storage)
+
 	uut := clientWithStorage{
 		VirtomizeClient: uuiClient,
+		StorageFolder:   storage,
 		TimeProvider:    defaultTimeProvider{},
 	}
 	iso, err := uut.CreateIso(Iso{Name: "debian_iso", Distribution: "debian", HostName: "host", Version: "11", Networks: []Network{{

@@ -37,6 +37,10 @@ func (p defaultTimeProvider) Now() time.Time {
 
 // CreateIso creates a new iso resource
 func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
+	if s.StorageFolder != "" {
+		s.StorageFolder = createDefaultStoragePath()
+	}
+
 	db, err := setupDB(s.StorageFolder + "my.db")
 	if err != nil {
 		log.Fatal(err)

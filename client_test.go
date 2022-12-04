@@ -58,14 +58,15 @@ func TestClientAddedIsoCanBeRead(t *testing.T) {
 
 	readIso, readError := uut.ReadIso(createIso.Id)
 
+	now := time.Now()
 	assert.NoError(t, createError)
 	assert.NotNil(t, createIso)
 	assert.Equal(t, isoName, createIso.Name)
 	assert.Equal(t, distributionName, createIso.Distribution)
 	assert.Equal(t, version, createIso.Version)
 	assert.Equal(t, hostName, createIso.HostName)
-	assert.True(t, createIso.CreationTime.After(time.Now().Add(-1*time.Second)))
-	assert.True(t, createIso.CreationTime.Before(time.Now().Add(1*time.Second)))
+	assert.True(t, createIso.CreationTime.After(now.Add(-10*time.Second)))
+	assert.True(t, createIso.CreationTime.Before(now.Add(10*time.Second)))
 
 	assert.NoError(t, readError)
 	assert.NotNil(t, readIso)

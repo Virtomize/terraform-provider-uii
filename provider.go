@@ -63,13 +63,20 @@ func providerConfigure(_ context.Context, d *schema.ResourceData) (interface{}, 
 		return nil, diags
 	}
 
-	defaultStoragePath := path.Join(os.TempDir(), "uiiterraform")
-	_ = os.Mkdir(defaultStoragePath, os.ModePerm)
+	defaultStoragePath := ""
 
 	localStorageOverride := d.Get("localstorage")
 	if localStorageOverride != nil {
 		defaultStoragePath = localStorageOverride.(string)
+	} else {
+		defaultStoragePath = createDefaultStoragePath()
 	}
 
 	return &clientWithStorage{VirtomizeClient: c, StorageFolder: defaultStoragePath, TimeProvider: defaultTimeProvider{}}, diags
+}
+
+func createDefaultStoragePath() string {
+	defaultStoragePath := path.Join(os.TempDir(), "uiiterraform")
+	_ = os.Mkdir(defaultStoragePath, os.ModePerm)
+	return defaultStoragePath
 }
