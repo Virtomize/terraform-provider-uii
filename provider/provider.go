@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	client "github.com/Virtomize/uii-go-api"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
@@ -55,8 +56,9 @@ func (p *uiiProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 				Optional: true,
 				// todo: make this required, but default to env variable. Check back on
 				// https://discuss.hashicorp.com/t/terraform-plugin-framework-required-attribute-and-environment-variables/47505
-				Sensitive:   true,
-				Description: "The API token for accessing Virtomize UII.",
+				Sensitive:           true,
+				Description:         fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable \"%s\".", TokenEnvName),
+				MarkdownDescription: fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable `%s`.", TokenEnvName),
 			},
 
 			"localstorage": schema.StringAttribute{
@@ -67,7 +69,7 @@ func (p *uiiProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 	}
 }
 
-// Configure prepares a HashiCups API client for data sources and resources.
+// Configure prepares a Virtomize UII API client for data sources and resources.
 func (p *uiiProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	// Retrieve provider data from configuration
 	var config uiiProviderModel

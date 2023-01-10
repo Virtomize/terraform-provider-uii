@@ -32,6 +32,10 @@ src-fmt: ## format source code.
 release: ## release terraform build.
 	goreleaser release --rm-dist --snapshot --skip-publish  --skip-sign
 
+.PHONY: doc
+doc: ## release terraform build.
+	go generate ./...
+
 .PHONY: install
 install: build ## build terraform module.
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
