@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"github.com/boltdb/bolt"
 	"log"
 	"os"
+	"path"
 	"time"
 )
 
@@ -37,7 +38,13 @@ func (p defaultTimeProvider) Now() time.Time {
 
 // CreateIso creates a new iso resource
 func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
-	db, err := setupDB(s.StorageFolder + "my.db")
+	if s.StorageFolder == "" {
+		err := fmt.Errorf("storage path not set")
+		log.Fatal(err)
+		return StoredIso{}, err
+	}
+
+	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
 		log.Fatal(err)
 		return StoredIso{}, err
@@ -69,7 +76,7 @@ func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
 
 // ReadIso reads a ISO resource
 func (s *clientWithStorage) ReadIso(isoId string) (StoredIso, error) {
-	db, err := setupDB(s.StorageFolder + "my.db")
+	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
 		log.Fatal(err)
 		return StoredIso{}, err
@@ -93,7 +100,7 @@ func (s *clientWithStorage) ReadIso(isoId string) (StoredIso, error) {
 
 // DeleteIso reads a ISO resource
 func (s *clientWithStorage) DeleteIso(isoId string) error {
-	db, err := setupDB(s.StorageFolder + "my.db")
+	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -111,7 +118,7 @@ func (s *clientWithStorage) DeleteIso(isoId string) error {
 
 // UpdateIso updates a ISO resource
 func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
-	db, err := setupDB(s.StorageFolder + "my.db")
+	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -234,7 +241,7 @@ func (s *clientWithStorage) createIsoFileWithUii(iso Iso) (string, error) {
 		})
 	}
 
-	localPath := s.StorageFolder + iso.Name + ".iso"
+	localPath := path.Join(s.StorageFolder, iso.Name+".iso")
 	err := s.VirtomizeClient.Build(localPath, client.BuildArgs{
 		Distribution: iso.Distribution,
 		Version:      iso.Version,

@@ -1,35 +1,42 @@
-package main
+package provider
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	"os"
 	"testing"
 )
 
-func TestSimpleIsoLifeCycle(t *testing.T) {
-	testAccProvider := Provider()
-	testAccProviders := map[string]*schema.Provider{
-		"virtomize": testAccProvider,
-	}
+var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	ProviderName: providerserver.NewProtocol6WithError(NewFromVersion("test")()),
+}
 
+func TestSimpleIsoLifeCycle(t *testing.T) {
 	testConfiguration := `
+
+provider "virtomize" {
+  # apitoken = retrieved from env variables
+  # localstorage = use local folder
+}
+
 resource "virtomize_iso" "debian_iso" {
     name = "debian_iso"
     distribution = "debian"
     version = "11"
     hostname = "examplehost"
-    networks {
+    networks = [{
       dhcp = true
       no_internet = false
-    }
+    }]
  }`
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testConfiguration,
@@ -49,7 +56,7 @@ func checkSimpleIsoProperties(state *terraform.State) error {
 	}
 
 	if rs.Primary.ID == "" {
-		return fmt.Errorf("Widget ID is not set")
+		return fmt.Errorf("Widget Id is not set")
 	}
 
 	attributes := rs.Primary.Attributes

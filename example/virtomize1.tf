@@ -59,10 +59,10 @@ resource "virtomize_iso" "debian_iso" {
     distribution = "debian"
     version = "11"
     hostname = "examplehost"
-    networks {
-      dhcp = false
+    networks = [{
+      dhcp = true
       no_internet = false
-    }
+  }]
  }
 
 #  resource "vsphere_file" "install_iso" {
