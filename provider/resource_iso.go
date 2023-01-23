@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	client "github.com/Virtomize/uii-go-api"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"time"
@@ -30,13 +31,13 @@ func (r *IsoResource) Metadata(_ context.Context, req resource.MetadataRequest, 
 	resp.TypeName = req.ProviderTypeName + "_iso"
 }
 
-func (r *IsoResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *IsoResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := req.ProviderData.(*clientWithStorage)
+	c, ok := req.ProviderData.(*clientWithStorage)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -47,7 +48,7 @@ func (r *IsoResource) Configure(ctx context.Context, req resource.ConfigureReque
 		return
 	}
 
-	r.client = client
+	r.client = c
 }
 
 // Create creates the resource and sets the initial Terraform state.
@@ -64,9 +65,20 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 
-	iso, err := parseIsoFromResourceModel(plan)
+	distributions, err := r.client.ReadDistributions()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading plan", err.Error())
+		// fallback to allowing everything, to support terraform plan for users that have not created an api key yet
+		// not sure about this
+		distributions = []client.OS{}
+	}
+
+	iso := parseIsoFromResourceModel(plan)
+
+	errors := validateIso(iso, distributions)
+	if errors != nil && len(errors) > 0 {
+		for _, e := range errors {
+			resp.Diagnostics.AddError("Error validating iso", e.Error())
+		}
 		return
 	}
 
@@ -85,6 +97,29 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+}
+
+func (r IsoResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data isoResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// fallback to allowing everything, as no client is present during the plan phase
+	var distributions []client.OS
+
+	iso := parseIsoFromResourceModel(data)
+
+	errors := validateIso(iso, distributions)
+
+	for _, e := range errors {
+		resp.Diagnostics.AddError(
+			"Validation error",
+			e.Error(),
+		)
 	}
 }
 
@@ -138,14 +173,10 @@ func (r *IsoResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	iso, err := parseIsoFromResourceModel(plan)
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading plan", err.Error())
-		return
-	}
+	iso := parseIsoFromResourceModel(plan)
 
 	isoId := plan.Id.ValueString()
-	err = r.client.UpdateIso(isoId, iso)
+	err := r.client.UpdateIso(isoId, iso)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating Iso",
@@ -201,7 +232,7 @@ func (r *IsoResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	}
 }
 
-func parseIsoFromResourceModel(d isoResourceModel) (Iso, error) {
+func parseIsoFromResourceModel(d isoResourceModel) Iso {
 	name := d.Name.ValueString()
 	distribution := d.Distribution.ValueString()
 	version := d.Version.ValueString()
@@ -214,10 +245,7 @@ func parseIsoFromResourceModel(d isoResourceModel) (Iso, error) {
 	timezone := stringOrDefault(d.Timezone, "")
 	architecture := stringOrDefault(d.Architecture, "")
 
-	networks, err := parseNetworksFromSchema(d.Networks)
-	if err != nil {
-		return Iso{}, err
-	}
+	networks := parseNetworksFromSchema(d.Networks)
 
 	iso := Iso{
 		Name:         name,
@@ -236,16 +264,14 @@ func parseIsoFromResourceModel(d isoResourceModel) (Iso, error) {
 			Packages:        nil,
 		},
 	}
-	return iso, nil
+	return iso
 }
 
-func parseNetworksFromSchema(networksModel []networksModel) ([]Network, error) {
+func parseNetworksFromSchema(networksModel []networksModel) []Network {
 	var networks []Network
-	hasOneNetworkWithInternet := false
 	for _, item := range networksModel {
 		dhcp := item.Dhcp.ValueBool()
 		noInternet := item.NoInternet.ValueBool()
-		hasOneNetworkWithInternet = hasOneNetworkWithInternet || !noInternet
 
 		if dhcp {
 			networks = append(networks, Network{
@@ -271,14 +297,9 @@ func parseNetworksFromSchema(networksModel []networksModel) ([]Network, error) {
 
 			networks = append(networks, network)
 		}
-
 	}
 
-	if !hasOneNetworkWithInternet {
-		return []Network{}, fmt.Errorf("iso needs at least 1 network configured for internet access")
-	}
-
-	return networks, nil
+	return networks
 }
 
 func stringListWithValidElements(list []types.String) []string {
