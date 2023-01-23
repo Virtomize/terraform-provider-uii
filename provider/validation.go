@@ -9,6 +9,49 @@ import (
 	"strings"
 )
 
+func validateIso(iso Iso, distributions []client.OS) []error {
+	var result []error
+
+	{
+		hostNameError := validateHostname(iso.HostName)
+		if hostNameError != nil {
+			result = append(result, hostNameError)
+		}
+	}
+
+	{
+		err := validateDistribution(iso.Distribution, iso.Version, iso.Optionals.Arch, distributions)
+		if err != nil {
+			result = append(result, err)
+		}
+	}
+
+	langErr := validateKeyboard(iso.Optionals.Keyboard)
+	if langErr != nil {
+		result = append(result, langErr)
+	}
+
+	{
+		internet := false
+		for _, n := range iso.Networks {
+			internet = internet || !n.NoInternet
+
+			if !n.DHCP {
+				ipError := validateCIDR(n.IPNet)
+				if ipError != nil {
+					result = append(result, ipError)
+				}
+			}
+		}
+
+		if !internet {
+			result = append(result, fmt.Errorf("ISO needs at least 1 configured with internet access"))
+		}
+	}
+
+	return result
+}
+
 func validateCIDR(value string) error {
 	_, _, err := net.ParseCIDR(value)
 
@@ -68,7 +111,7 @@ func validateDistribution(distribution string, version string, architecture stri
 	if !foundDistribution {
 		return fmt.Errorf("%s requires a supported distribution, supported are: %s; current value: %s",
 			distributionKey,
-			strings.Join(displayNames, ","),
+			strings.Join(displayNames, ", "),
 			distribution)
 	}
 
@@ -86,7 +129,7 @@ func validateDistribution(distribution string, version string, architecture stri
 	if !foundVersion {
 		return fmt.Errorf("%s requires a supported distribution version, supported are: %s; current value: %s",
 			distributionKey,
-			strings.Join(displayNames, ","),
+			strings.Join(displayNames, ", "),
 			version)
 	}
 
@@ -103,6 +146,6 @@ func validateDistribution(distribution string, version string, architecture stri
 
 	return fmt.Errorf("%s requires a supported distribution, supported are: %s; current value: %s",
 		distributionKey,
-		strings.Join(displayNames, ","),
+		strings.Join(displayNames, ", "),
 		architecture)
 }

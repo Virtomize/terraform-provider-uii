@@ -100,8 +100,11 @@ func (s *clientWithStorage) ReadIso(isoId string) (StoredIso, error) {
 }
 
 func (s *clientWithStorage) ReadDistributions() ([]client.OS, error) {
+	if s.VirtomizeClient != nil {
+		return s.VirtomizeClient.OperatingSystems()
+	}
 
-	return s.VirtomizeClient.OperatingSystems()
+	return nil, fmt.Errorf("client not initialized")
 }
 
 // DeleteIso reads a ISO resource
