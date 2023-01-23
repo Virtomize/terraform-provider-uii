@@ -14,6 +14,7 @@ import (
 // IUiiClient is an interface for abstracting the interactions with the UII service - used for testing
 type IUiiClient interface {
 	Build(filePath string, args client.BuildArgs, opts client.BuildOpts) error
+	OperatingSystems() ([]client.OS, error)
 }
 
 // ITimeProvider is an interface for injecting custom time providers - used for testing
@@ -96,6 +97,11 @@ func (s *clientWithStorage) ReadIso(isoId string) (StoredIso, error) {
 	}
 
 	return iso, err
+}
+
+func (s *clientWithStorage) ReadDistributions() ([]client.OS, error) {
+
+	return s.VirtomizeClient.OperatingSystems()
 }
 
 // DeleteIso reads a ISO resource

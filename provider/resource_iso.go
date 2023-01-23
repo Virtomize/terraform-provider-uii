@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	client "github.com/Virtomize/uii-go-api"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"time"
@@ -30,13 +31,13 @@ func (r *IsoResource) Metadata(_ context.Context, req resource.MetadataRequest, 
 	resp.TypeName = req.ProviderTypeName + "_iso"
 }
 
-func (r *IsoResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *IsoResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := req.ProviderData.(*clientWithStorage)
+	c, ok := req.ProviderData.(*clientWithStorage)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -47,7 +48,7 @@ func (r *IsoResource) Configure(ctx context.Context, req resource.ConfigureReque
 		return
 	}
 
-	r.client = client
+	r.client = c
 }
 
 // Create creates the resource and sets the initial Terraform state.
@@ -64,9 +65,24 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 
+	distributions, err := r.client.ReadDistributions()
+	if err == nil {
+		// fallback to allowing everything, to support terraform plan for users that have not created an api key yet
+		// not sure about this
+		distributions = []client.OS{}
+	}
+
 	iso, err := parseIsoFromResourceModel(plan)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading plan", err.Error())
+		return
+	}
+
+	errors := validateIso(iso, distributions)
+	if errors != nil && len(errors) > 0 {
+		for _, e := range errors {
+			resp.Diagnostics.AddError("Error validating iso", e.Error())
+		}
 		return
 	}
 
@@ -86,6 +102,45 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+func validateIso(iso Iso, distributions []client.OS) []error {
+	var result []error
+
+	{
+		hostNameError := validateHostname(iso.HostName)
+		if hostNameError != nil {
+			result = append(result, hostNameError)
+		}
+	}
+
+	{
+		err := validateDistribution(iso.Distribution, iso.Version, iso.Optionals.Arch, distributions)
+		if err != nil {
+			result = append(result, err)
+		}
+	}
+
+	langErr := validateKeyboard(iso.Optionals.Keyboard)
+	if langErr != nil {
+		result = append(result, langErr)
+	}
+
+	{
+		internet := false
+		for _, n := range iso.Networks {
+			internet = internet || !n.NoInternet
+
+			ipError := validateCIDR(n.IPNet)
+			result = append(result, ipError)
+		}
+
+		if internet {
+			result = append(result, fmt.Errorf("ISO needs at least 1 configured with internet access"))
+		}
+	}
+
+	return result
 }
 
 // Read refreshes the Terraform state with the latest data.
