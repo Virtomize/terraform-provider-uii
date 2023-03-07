@@ -7,6 +7,7 @@ import (
 	"net"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func validateIso(iso Iso, distributions []client.OS) []error {
@@ -31,6 +32,16 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 		result = append(result, langErr)
 	}
 
+	localeErr := validateLocale(iso.Optionals.Locale)
+	if localeErr != nil {
+		result = append(result, localeErr)
+	}
+
+	timeErr := validateTimezone(iso.Optionals.Timezone)
+	if localeErr != nil {
+		result = append(result, timeErr)
+	}
+
 	{
 		internet := false
 		for _, n := range iso.Networks {
@@ -40,6 +51,39 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 				ipError := validateCIDR(n.IPNet)
 				if ipError != nil {
 					result = append(result, ipError)
+				}
+
+				if n.MAC != "" {
+					_, macErr := net.ParseMAC(n.MAC)
+					if macErr != nil {
+						result = append(result, macErr)
+					}
+				}
+
+				if n.Gateway == "" {
+					gatewayErr := fmt.Errorf("static network configuration - no gateway defined set gateway parameter e.g 'gateway=192.168.0.1'")
+					result = append(result, gatewayErr)
+				} else {
+					gwIP := net.ParseIP(n.Gateway)
+					if gwIP == nil {
+						gatewayErr := fmt.Errorf("static network configuration - gateway ip %v is invalid", n.Gateway)
+						result = append(result, gatewayErr)
+					}
+
+					_, ipNet, _ := net.ParseCIDR(n.IPNet)
+					if !ipNet.Contains(gwIP) {
+						gatewayErr := fmt.Errorf("static network configuration - the gateway is not part of your defined subnet, this error occures if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
+						result = append(result, gatewayErr)
+					}
+				}
+
+				if len(n.DNS) > 0 {
+					for _, ip := range n.DNS {
+						if net.ParseIP(ip) == nil {
+							dnsErr := fmt.Errorf("static network configuration - dns ip %v is invalid", ip)
+							result = append(result, dnsErr)
+						}
+					}
 				}
 			}
 		}
@@ -75,6 +119,38 @@ func validateKeyboard(keyboard string) error {
 			keyboardKey,
 			err.Error(),
 			keyboard)
+	}
+
+	return nil
+}
+
+func validateLocale(locale string) error {
+	if locale == "" {
+		return nil
+	}
+
+	_, err := language.Parse(locale)
+	if err != nil {
+		return fmt.Errorf("%s requires a valid local or empty string (\"en-en\"), error: %s current value: %s",
+			localeKey,
+			err.Error(),
+			locale)
+	}
+
+	return nil
+}
+
+func validateTimezone(timeZone string) error {
+	if timeZone == "" {
+		return nil
+	}
+
+	_, err := time.LoadLocation(timeZone)
+	if err != nil {
+		return fmt.Errorf("%s requires a time zone or empty string, error: %s current value: %s",
+			timezoneKey,
+			err.Error(),
+			timeZone)
 	}
 
 	return nil
