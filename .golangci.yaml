@@ -1,0 +1,217 @@
+linters-settings:
+  dogsled:
+    # checks assignments with too many blank identifiers; default is 2
+    max-blank-identifiers: 2
+  dupl:
+    threshold: 80
+  depguard:
+    list-type: blacklist
+  funlen:
+    lines: 110
+    statements: 50
+  gci:
+    local-prefixes: github.com/golangci/golangci-lint
+  goconst:
+    min-len: 3
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - importShadow
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+      - unnamedResult
+    settings:
+      captLocal: # must be valid enabled check name
+        # whether to restrict checker to params only (default true)
+        paramsOnly: true
+      elseif:
+        # whether to skip balanced if-else pairs (default true)
+        skipBalanced: true
+      hugeParam:
+        # size in bytes that makes the warning trigger (default 80)
+        sizeThreshold: 512
+      nestingReduce:
+        # min number of statements inside a branch to trigger a warning (default 5)
+        bodyWidth: 5
+      rangeExprCopy:
+        # size in bytes that makes the warning trigger (default 512)
+        sizeThreshold: 512
+        # whether to check test functions (default true)
+        skipTestFuncs: true
+      rangeValCopy:
+        # size in bytes that makes the warning trigger (default 128)
+        sizeThreshold: 256
+        # whether to check test functions (default true)
+        skipTestFuncs: true
+      truncateCmp:
+        # whether to skip int/uint/uintptr types (default true)
+        skipArchDependent: true
+      underef:
+        # whether to skip (*x).method() calls where x is a pointer receiver (default true)
+        skipRecvDeref: true
+      #unnamedResult:
+        # whether to check exported functions
+        #checkExported: true
+  gocyclo:
+    # TODO: The complexity is increased to 15 to make the linter happy. Need to investigate and turn this down to 10.
+    min-complexity: 15
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
+  golint:
+    min-confidence: 0
+  govet:
+    enable-all: true
+    #enable:
+    #  - fieldalignment
+    settings:
+      printf:
+        funcs:
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+  lll:
+    line-length: 30
+    source: "^// "
+  maligned:
+    suggest-new: true
+  misspell:
+    locale: UK
+  nestif:
+    # minimal complexity of if statements to report, 5 by default
+    min-complexity: 7
+  nolintlint:
+    allow-unused: true # report any unused nolint directives # seems to be buggy (?)
+    require-explanation: true # require an explanation for nolint directives
+    require-specific: true # require nolint directives to be specific about which linter is being skipped
+
+linters:
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - depguard
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - forbidigo
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - goerr113
+    - gofmt
+    - goimports
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - ineffassign
+    - lll
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - nolintlint
+    - prealloc
+    - predeclared
+    - rowserrcheck
+    - staticcheck
+    - stylecheck
+#    - testpackage # we're currently not using black box testing
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+  # don't enable:
+  # - interfacer  - Archived
+  # - maligned    - Archived, functionality is now in govet
+  # - revive      - High effort to configure for not much benefit at present
+  # - wsl         - Too opinionated, makes code hard to read
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gomnd
+        - noctx # not required in many cases
+        - gochecknoglobals
+        - funlen
+        - goconst
+        - gocognit
+        - staticcheck # for tests some functionality might be used suboptimal. Consider.
+        - nolintlint # no need to check nolint validity in tests
+        - goerr113 # we need to be able to create new errors in tests
+        - unparam # mockup or setup methods might need to have signature with some of returned parameters being constant
+        - dupl # code duplication in tests might be intentional for clarity
+
+    - path: client/
+      linters:
+        - gomnd
+        - noctx # not required in many cases
+        - gochecknoglobals
+        - funlen
+        - staticcheck # for tests some functionality might be used suboptimal. Consider.
+        - nolintlint # no need to check nolint validity in tests
+        - goerr113 # we need to be able to create new errors in tests
+        - unparam # mockup or setup methods might need to have signature with some of returned parameters being constant
+        - dupl # code duplication in tests might be intentional for clarity
+        - gocritic
+        - errorlint
+        - whitespace
+        - goconst
+
+    # https://github.com/go-critic/go-critic/issues/926
+    - linters:
+        - gocritic
+      text: "unnecessaryDefer:"
+
+    - linters:
+        - lll
+      source: "^// ||/*"
+
+    # TODO temporary rule, must be removed
+    # seems related to v0.34.1, but I was not able to reproduce locally,
+    # I was also not able to reproduce in the CI of a fork,
+    # only the golangci-lint CI seems to be affected by this invalid analysis.
+    - path: pkg/golinters/scopelint.go
+      text: 'directive `//nolint:interfacer` is unused for linter interfacer'
+
+
+    # TODO temporary rule, must be removed
+    # related to https://github.com/golangci/golangci-lint/pull/1756
+    # must be replaced by '///nolint:staticcheck // it's an adapter for golang.org/x/tools/go/packages'
+    - path: pkg/golinters/goanalysis/adapters.go
+      text: 'SA1019: package golang.org/x/tools/go/loader is deprecated'
+
+# golangci.com configuration
+# https://github.com/golangci/golangci/wiki/Configuration
+service:
+  golangci-lint-version: 1.23.x # use the fixed version to not introduce new linters unexpectedly
+  prepare:
+    - echo "here I can run custom commands, but no preparation needed for this repo"
+
+run:
+  timeout: 10m
