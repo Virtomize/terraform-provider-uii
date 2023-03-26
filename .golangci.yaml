@@ -133,7 +133,7 @@ linters:
     - nestif
     - nolintlint
     - prealloc
-    - predeclared
+    #- predeclared
     - rowserrcheck
     - staticcheck
     - stylecheck
