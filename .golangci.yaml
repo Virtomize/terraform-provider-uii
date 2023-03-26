@@ -104,7 +104,7 @@ linters:
     - depguard
     - dogsled
     - dupl
-#    - durationcheck
+    - durationcheck
     - errcheck
     - errorlint
     - exhaustive

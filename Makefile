@@ -62,7 +62,8 @@ install-tools: ## install dependencies if needed.
 	$(GO) install github.com/securego/gosec/v2/cmd/gosec@latest
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin latest
 
-
+install-linters:
+	go install github.com/charithe/durationcheck/cmd/durationcheck
 
 
 
