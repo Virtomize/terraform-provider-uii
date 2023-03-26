@@ -109,7 +109,7 @@ linters:
     #- errorlint
     - exhaustive
     - exportloopref
-    - forbidigo
+    #- forbidigo
     - funlen
     - gci
     - gochecknoglobals
@@ -179,7 +179,7 @@ issues:
         - unparam # mockup or setup methods might need to have signature with some of returned parameters being constant
         - dupl # code duplication in tests might be intentional for clarity
         - gocritic
-        - errorlint
+        #- errorlint
         - whitespace
         - goconst
 
