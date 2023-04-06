@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"uii-terraform-framework-provider/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -11,8 +12,11 @@ import (
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name virtomize-uii
 
 func main() {
-	providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
+	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
 		// TODO: Update this string with the published name of your provider.
 		Address: "virtomize.com/uii/virtomize",
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -2,13 +2,21 @@ package provider
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	client "github.com/Virtomize/uii-go-api"
-	"github.com/boltdb/bolt"
 	"log"
 	"os"
 	"path"
 	"time"
+
+	client "github.com/Virtomize/uii-go-api"
+	"github.com/boltdb/bolt"
+)
+
+var (
+	ErrBucketNotFound    = errors.New("bucket not found")
+	ErrStoragePathNotSet = errors.New("storage path not set")
+	ErrClientInit        = errors.New("client not initialised")
 )
 
 // IUiiClient is an interface for abstracting the interactions with the UII service - used for testing
@@ -40,9 +48,8 @@ func (p defaultTimeProvider) Now() time.Time {
 // CreateIso creates a new iso resource
 func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
 	if s.StorageFolder == "" {
-		err := fmt.Errorf("storage path not set")
-		log.Fatal(err)
-		return StoredIso{}, err
+		log.Fatal(ErrStoragePathNotSet)
+		return StoredIso{}, ErrStoragePathNotSet
 	}
 
 	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
@@ -63,7 +70,7 @@ func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
 	}
 
 	id, err := addIso(db, StoredIso{
-		Id:           iso.Name,
+		ID:           iso.Name,
 		Iso:          iso,
 		LocalPath:    localPath,
 		CreationTime: creationTime,
@@ -76,7 +83,7 @@ func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
 }
 
 // ReadIso reads a ISO resource
-func (s *clientWithStorage) ReadIso(isoId string) (StoredIso, error) {
+func (s *clientWithStorage) ReadIso(isoID string) (StoredIso, error) {
 	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
 		log.Fatal(err)
@@ -84,13 +91,13 @@ func (s *clientWithStorage) ReadIso(isoId string) (StoredIso, error) {
 	}
 	defer db.Close()
 
-	iso, err := readIso(db, isoId)
+	iso, err := readIso(db, isoID)
 	if err != nil {
 		return StoredIso{}, err
 	}
 
 	if s.isExpired(iso) {
-		err = s.refreshIso(isoId, db)
+		err = s.refreshIso(isoID, db)
 		if err != nil {
 			return StoredIso{}, err
 		}
@@ -104,39 +111,39 @@ func (s *clientWithStorage) ReadDistributions() ([]client.OS, error) {
 		return s.VirtomizeClient.OperatingSystems()
 	}
 
-	return nil, fmt.Errorf("client not initialized")
+	return nil, ErrClientInit
 }
 
 // DeleteIso reads a ISO resource
-func (s *clientWithStorage) DeleteIso(isoId string) error {
+func (s *clientWithStorage) DeleteIso(isoID string) error {
 	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 		return err
 	}
 	defer db.Close()
 
-	oldIso, err := readIso(db, isoId)
+	oldIso, err := readIso(db, isoID)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 		return err
 	}
 	_ = os.Remove(oldIso.LocalPath)
-	return deleteIso(db, isoId)
+	return deleteIso(db, isoID)
 }
 
 // UpdateIso updates a ISO resource
 func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
 	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 		return err
 	}
 	defer db.Close()
 
 	oldIso, err := readIso(db, id)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 		return err
 	}
 
@@ -144,13 +151,13 @@ func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
 		// refresh iso and re-read, as path potentially updated
 		err = s.refreshIso(id, db)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 			return err
 		}
 
 		oldIso, err = readIso(db, id)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 			return err
 		}
 	}
@@ -161,22 +168,22 @@ func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
 func setupDB(dbPath string) (*bolt.DB, error) {
 	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not open db, %v", err)
+		return nil, fmt.Errorf("could not open db, %w", err)
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
 		root, err := tx.CreateBucketIfNotExists([]byte("DB"))
 		if err != nil {
-			return fmt.Errorf("could not create root bucket: %v", err)
+			return fmt.Errorf("could not create root bucket: %w", err)
 		}
 		_, err = root.CreateBucketIfNotExists([]byte("ISOS"))
 		if err != nil {
-			return fmt.Errorf("could not create weight bucket: %v", err)
+			return fmt.Errorf("could not create weight bucket: %w", err)
 		}
 
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not set up buckets, %v", err)
+		return nil, fmt.Errorf("could not set up buckets, %w", err)
 	}
 
 	return db, nil
@@ -189,19 +196,19 @@ func addIso(db *bolt.DB, iso StoredIso) (string, error) {
 
 func updateIso(db *bolt.DB, isoKey string, iso StoredIso) error {
 	entryBytes, err := json.Marshal(StoredIso{
-		Id:           isoKey,
+		ID:           isoKey,
 		Iso:          iso.Iso,
 		LocalPath:    iso.LocalPath,
 		CreationTime: iso.CreationTime,
 	})
 	if err != nil {
-		return fmt.Errorf("could marshal iso: %v", err)
+		return fmt.Errorf("could marshal iso: %w", err)
 	}
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		err := tx.Bucket([]byte("DB")).Bucket([]byte("ISOS")).Put([]byte(isoKey), entryBytes)
 		if err != nil {
-			return fmt.Errorf("could not insert iso: %v", err)
+			return fmt.Errorf("could not insert iso: %w", err)
 		}
 		return nil
 	})
@@ -213,7 +220,7 @@ func readIso(db *bolt.DB, isoKey string) (isoData StoredIso, err error) {
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("DB")).Bucket([]byte("ISOS"))
 		if b == nil {
-			return fmt.Errorf("bucket not found")
+			return ErrBucketNotFound
 		}
 		rawData := b.Get([]byte(isoKey))
 		marshalErr := json.Unmarshal(rawData, &isoData)
@@ -226,7 +233,7 @@ func deleteIso(db *bolt.DB, isoKey string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("DB")).Bucket([]byte("ISOS"))
 		if b == nil {
-			return fmt.Errorf("bucket not found")
+			return ErrBucketNotFound
 		}
 		return b.Delete([]byte(isoKey))
 	})
@@ -237,7 +244,7 @@ func requiresNewIsoFile(_ Iso, _ StoredIso) bool {
 }
 
 func (s *clientWithStorage) createIsoFileWithUii(iso Iso) (string, error) {
-	var networks []client.NetworkArgs
+	networks := []client.NetworkArgs{}
 	for _, net := range iso.Networks {
 		networks = append(networks, client.NetworkArgs{
 			DHCP:       net.DHCP,
@@ -270,8 +277,8 @@ func (s *clientWithStorage) createIsoFileWithUii(iso Iso) (string, error) {
 }
 
 // refreshIso recreates an Iso by reading the data from the db and requesting a new iso file from UII
-func (s *clientWithStorage) refreshIso(isoId string, db *bolt.DB) error {
-	iso, err := readIso(db, isoId)
+func (s *clientWithStorage) refreshIso(isoID string, db *bolt.DB) error {
+	iso, err := readIso(db, isoID)
 	if err != nil {
 		return err
 	}
@@ -285,7 +292,7 @@ func (s *clientWithStorage) refreshIso(isoId string, db *bolt.DB) error {
 		return err
 	}
 
-	return updateIso(db, isoId, StoredIso{isoId, iso.Iso, localPath, s.TimeProvider.Now()})
+	return updateIso(db, isoID, StoredIso{isoID, iso.Iso, localPath, s.TimeProvider.Now()})
 }
 
 func (s *clientWithStorage) isExpired(iso StoredIso) bool {

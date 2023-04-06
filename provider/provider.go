@@ -3,10 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
-	client "github.com/Virtomize/uii-go-api"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
 	"path"
+
+	client "github.com/Virtomize/uii-go-api"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -14,12 +15,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
+//nolint: gosec // wrong
 const TokenEnvName = "VIRTOMIZE_API_TOKEN"
 const StorageEnvName = "VIRTOMIZE_ISO_CACHE"
 const ProviderName = "virtomize"
 
 type uiiProviderModel struct {
-	ApiToken     types.String `tfsdk:"apitoken"`
+	APIToken     types.String `tfsdk:"apitoken"`
 	LocalStorage types.String `tfsdk:"localstorage"`
 }
 
@@ -54,10 +56,10 @@ func (p *uiiProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 		Attributes: map[string]schema.Attribute{
 			"apitoken": schema.StringAttribute{
 				Optional: true,
-				// todo: make this required, but default to env variable. Check back on
+				// TODO: make this required, but default to env variable. Check back on
 				// https://discuss.hashicorp.com/t/terraform-plugin-framework-required-attribute-and-environment-variables/47505
 				Sensitive:           true,
-				Description:         fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable \"%s\".", TokenEnvName),
+				Description:         fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable %q.", TokenEnvName),
 				MarkdownDescription: fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable `%s`.", TokenEnvName),
 			},
 
@@ -80,8 +82,8 @@ func (p *uiiProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	}
 
 	// token
-	token := config.ApiToken.ValueString()
-	if config.ApiToken.IsUnknown() || config.ApiToken.IsNull() {
+	token := config.APIToken.ValueString()
+	if config.APIToken.IsUnknown() || config.APIToken.IsNull() {
 		token = os.Getenv(TokenEnvName)
 	}
 
@@ -110,7 +112,6 @@ func (p *uiiProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		resp.Diagnostics.AddError(
 			"Folder does not exist",
 			"Local folder does not exist")
-
 	}
 
 	c, err := client.NewClient(token)
