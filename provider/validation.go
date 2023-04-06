@@ -116,10 +116,11 @@ func validateCIDR(value string) error {
 	_, _, err := net.ParseCIDR(value)
 
 	if err != nil {
-		return fmt.Errorf("%w for %s, error: %w current value: %s",
+		//nolint: errorlint // can't have two errors
+		return fmt.Errorf("%w for %s, error: %s current value: %s",
 			ErrCIDRRequired,
 			ipNetKey,
-			err,
+			err.Error(),
 			value)
 	}
 	return nil
@@ -132,10 +133,11 @@ func validateKeyboard(keyboard string) error {
 
 	_, err := language.Parse(keyboard)
 	if err != nil {
-		return fmt.Errorf("%w for %s, error: %w current value: %s",
+		//nolint: errorlint // can't have two errors
+		return fmt.Errorf("%w for %s, error: %s current value: %s",
 			ErrKeyboardLayoutRequired,
 			keyboardKey,
-			err,
+			err.Error(),
 			keyboard)
 	}
 
@@ -149,10 +151,11 @@ func validateLocale(locale string) error {
 
 	_, err := language.Parse(locale)
 	if err != nil {
-		return fmt.Errorf("%w for %s, error: %w current value: %s",
+		//nolint: errorlint // can't have two errors
+		return fmt.Errorf("%w for %s, error: %s current value: %s",
 			ErrLocaleRequired,
 			localeKey,
-			err,
+			err.Error(),
 			locale)
 	}
 
@@ -166,10 +169,11 @@ func validateTimezone(timeZone string) error {
 
 	_, err := time.LoadLocation(timeZone)
 	if err != nil {
-		return fmt.Errorf("%w for %s, error: %w current value: %s",
+		//nolint: errorlint // can't have two errors
+		return fmt.Errorf("%w for %s, error: %s current value: %s",
 			ErrTimeZoneRequired,
 			timezoneKey,
-			err,
+			err.Error(),
 			timeZone)
 	}
 
