@@ -33,7 +33,7 @@ type BuildOpts struct {
 }
 
 type StoredIso struct {
-	Id string
+	ID string
 	Iso
 	LocalPath    string
 	CreationTime time.Time

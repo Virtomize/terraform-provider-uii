@@ -111,7 +111,7 @@ linters:
     - exportloopref
     - forbidigo
     - funlen
-    - gci
+    #- gci
     - gochecknoglobals
     - gochecknoinits
     - gocognit
@@ -120,8 +120,8 @@ linters:
     - gocyclo
     - godox
     - goerr113
-    - gofmt
-    - goimports
+    #- gofmt
+    #- goimports
     - goprintffuncname
     - gosec
     - gosimple
@@ -155,6 +155,10 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
+        - gci
+        - gocritic
+        - goimports
+        - stylecheck
         - gomnd
         - noctx # not required in many cases
         - gochecknoglobals

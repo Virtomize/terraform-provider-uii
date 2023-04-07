@@ -3,15 +3,21 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
+
 	client "github.com/Virtomize/uii-go-api"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"time"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
 	_ resource.Resource = &IsoResource{}
+)
+
+const (
+	errClientInit     = "Client not properly initialised"
+	errClientInitDesc = "The UII client is not properly initialised, which lead to an internal error."
 )
 
 // NewIsoResource is a helper function to simplify the provider implementation.
@@ -61,7 +67,7 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 	}
 
 	if r.client == nil {
-		resp.Diagnostics.AddError("Client not properly initialized", "The UII client is not properly initialized, which lead to an internal errror.")
+		resp.Diagnostics.AddError(errClientInit, errClientInitDesc)
 		return
 	}
 
@@ -75,7 +81,7 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 	iso := parseIsoFromResourceModel(plan)
 
 	errors := validateIso(iso, distributions)
-	if errors != nil && len(errors) > 0 {
+	if errors != nil {
 		for _, e := range errors {
 			resp.Diagnostics.AddError("Error validating iso", e.Error())
 		}
@@ -89,7 +95,7 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 	}
 
 	// set computed values
-	plan.Id = types.StringValue(storedIso.Id)
+	plan.ID = types.StringValue(storedIso.ID)
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 	plan.LocalPath = types.StringValue(storedIso.LocalPath)
 
@@ -134,15 +140,15 @@ func (r *IsoResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	}
 
 	if r.client == nil {
-		resp.Diagnostics.AddError("Client not properly initialized", "The UII client is not properly initialized, which lead to an internal errror.")
+		resp.Diagnostics.AddError(errClientInit, errClientInitDesc)
 		return
 	}
 
-	iso, err := r.client.ReadIso(state.Id.ValueString())
+	iso, err := r.client.ReadIso(state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Iso",
-			"Could not read ISO Id "+state.Id.ValueString()+": "+err.Error(),
+			"Could not read ISO Id "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
@@ -169,14 +175,14 @@ func (r *IsoResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	}
 
 	if r.client == nil {
-		resp.Diagnostics.AddError("Client not properly initialized", "The UII client is not properly initialized, which lead to an internal errror.")
+		resp.Diagnostics.AddError(errClientInit, errClientInitDesc)
 		return
 	}
 
 	iso := parseIsoFromResourceModel(plan)
 
-	isoId := plan.Id.ValueString()
-	err := r.client.UpdateIso(isoId, iso)
+	isoID := plan.ID.ValueString()
+	err := r.client.UpdateIso(isoID, iso)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating Iso",
@@ -186,11 +192,11 @@ func (r *IsoResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	}
 
 	// read updated iso to retrieve recomputed values
-	updatedIso, err := r.client.ReadIso(isoId)
+	updatedIso, err := r.client.ReadIso(isoID)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Iso",
-			"Could not read ISO Id "+isoId+": "+err.Error(),
+			"Could not read ISO Id "+isoID+": "+err.Error(),
 		)
 		return
 	}
@@ -218,11 +224,11 @@ func (r *IsoResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	}
 
 	if r.client == nil {
-		resp.Diagnostics.AddError("Client not properly initialized", "The UII client is not properly initialized, which lead to an internal errror.")
+		resp.Diagnostics.AddError(errClientInit, errClientInitDesc)
 		return
 	}
 
-	err := r.client.DeleteIso(state.Id.ValueString())
+	err := r.client.DeleteIso(state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error deleting ISO",
@@ -303,7 +309,7 @@ func parseNetworksFromSchema(networksModel []networksModel) []Network {
 }
 
 func stringListWithValidElements(list []types.String) []string {
-	var result []string
+	result := []string{}
 
 	for _, item := range list {
 		if item.IsUnknown() {
@@ -320,6 +326,7 @@ func stringListWithValidElements(list []types.String) []string {
 	return result
 }
 
+//nolint: unparam // not sure if this is always the case in the future
 func stringOrDefault(data types.String, defaultValue string) string {
 	if data.IsUnknown() {
 		return defaultValue

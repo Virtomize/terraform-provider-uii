@@ -3,10 +3,9 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/types"
-
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 const isoNameKey = "name"
@@ -16,7 +15,6 @@ const versionKey = "version"
 const hostnameKey = "hostname"
 
 const localPathKey = "localpath"
-const lastUpdatedKey = "last_updated"
 
 const networksKey = "networks"
 const dhcpKey = "dhcp"
@@ -32,13 +30,15 @@ const keyboardKey = "keyboard"
 const timezoneKey = "timezone"
 const packagesKey = "packages"
 const architectureKey = "architecture"
-const enableSshPasswordAuthenticationKey = "enable_ssh_authentication_through_password"
+
+//nolint: gosec // wrong
+const enableSSHPasswordAuthenticationKey = "enable_ssh_authentication_through_password"
 const sshKeysKey = "ssh_keys"
 const localeKey = "locale"
 
 // orderResourceModel maps the resource schema data.
 type isoResourceModel struct {
-	Id                       types.String    `tfsdk:"id"`
+	ID                       types.String    `tfsdk:"id"`
 	LastUpdated              types.String    `tfsdk:"last_updated"`
 	LocalPath                types.String    `tfsdk:"localpath"`
 	Name                     types.String    `tfsdk:"name"`
@@ -50,7 +50,7 @@ type isoResourceModel struct {
 	Keyboard                 types.String    `tfsdk:"keyboard"`
 	Password                 types.String    `tfsdk:"password"`
 	ShhTroughPasswordEnabled types.Bool      `tfsdk:"enable_ssh_authentication_through_password"`
-	SshKeys                  []types.String  `tfsdk:"ssh_keys"`
+	SSHKeys                  []types.String  `tfsdk:"ssh_keys"`
 	Timezone                 types.String    `tfsdk:"timezone"`
 	Packages                 []types.String  `tfsdk:"packages"`
 	Networks                 []networksModel `tfsdk:"networks"`
@@ -68,6 +68,7 @@ type networksModel struct {
 }
 
 // Schema defines the schema for the resource.
+//nolint: funlen // nope
 func (r *IsoResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
@@ -154,7 +155,7 @@ func (r *IsoResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description:         "A password to be set the \"root\" user. The default password if this parameter is not set is \"virtomize\".",
 				MarkdownDescription: "A password to be set the `root` user. The default password if this parameter is not set is `virtomize`.",
 			},
-			enableSshPasswordAuthenticationKey: schema.BoolAttribute{
+			enableSSHPasswordAuthenticationKey: schema.BoolAttribute{
 				Optional:    true,
 				Description: "If true, login into the OS through SSH will be enabled.",
 			},
