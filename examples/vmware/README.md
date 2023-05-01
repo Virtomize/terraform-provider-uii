@@ -1,54 +1,26 @@
-## Configure the vSphere Provider
-variable "vsphere_server" {
-  type    = string
+# Create and install virtual machine VMmare
+
+VMware ESXI and VSphere is a poplar hypervisor to run on premise virtual machines infrastructure.
+It offers am official Terraform provider that can be found in the [public terraform registry](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs).
+
+To use this provider together with the UII provider we need to set up a few pieces of configuration.
+
+## Setup the VMware provider
+
+The following example uses a local server and connects using username and password
+```terraform
+provider "vsphere" {
+  vsphere_server = "${var.vsphere_server}"
+  user = "${var.vsphere_user}"
+  password = "${var.vsphere_password}"
+  allow_unverified_ssl = true
 }
+```
+## Define location VM location 
 
-variable "vsphere_user" {
-  type    = string
-}
+Vsphere requires some additional definitions to correctly identify the location of the VM. 
 
-variable "vsphere_password" {
-  type    = string
-}
-
-variable "virtomize_api_token" {
-  type    = string
-}
-
-terraform {
-required_providers {
-    virtomize = {
-      source  = "virtomize.com/uii/virtomize"
-        }
-  }
-}
-
-  provider "vsphere" {
-      vsphere_server = "${var.vsphere_server}"
-      user = "${var.vsphere_user}"
-      password = "${var.vsphere_password}"
-      allow_unverified_ssl = true
-  }
-
-provider "virtomize" {
-  apitoken = "${var.virtomize_api_token}"
-  localstorage = "C:/Tools/Terraform/Isos"
-}
-
-
-## Build VM
-resource "virtomize_iso" "debian_iso" {
-    name = "debian_iso"
-    distribution = "debian"
-    version = "11"
-    hostname = "examplehost"
-    networks = [{
-      dhcp = true
-      no_internet = false
-  }]
-}
-
-## VSphere config
+```terraform
 data "vsphere_datacenter" "dc" {
   name = "ha-datacenter"
 }
@@ -64,7 +36,17 @@ data "vsphere_network" "mgmt_lan" {
   name          = "VM Network"
   datacenter_id = "${data.vsphere_datacenter.dc.id}"
 }
+```
+## Upload ISO file
+**This is the main step linking UII with VSphere**
 
+UII saves the created ISO locally and doesn't know about VSphere.
+There a specifying a `vsphere_file` can be used to copy the file from the local file system to VSphere.
+Notice, this step may fail if the target folder does not exist.
+In such cases setting `create_directories` to `true` on the first run might be necessary.
+
+
+```terraform
 ## Upload ISO
 resource "vsphere_file" "install_iso" {
   datacenter         = "${data.vsphere_datacenter.dc.name}"
@@ -74,7 +56,14 @@ resource "vsphere_file" "install_iso" {
   # might need to be set to true for the first run
   create_directories = false
 }
+```
 
+## Define the VM
+Finally, the actual vm is defined. 
+Note that nothing in this configuration is UII specific. 
+The ISO is referenced by using the  `vsphere_file` `install_iso` defined in the previous step.
+
+```terraform
 ## define VM
 resource "vsphere_virtual_machine" "terraformVM" {
   name             = "terraformVM"
@@ -102,3 +91,4 @@ resource "vsphere_virtual_machine" "terraformVM" {
     path         = "${resource.vsphere_file.install_iso.destination_file}"
   }
 }
+```
