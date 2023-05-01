@@ -66,7 +66,7 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 			if len(validationErrors) > 0 {
 				result = append(result, validationErrors...)
 			}
-			hasInternet = hasInternet || n.NoInternet
+			hasInternet = hasInternet || !n.NoInternet
 		}
 
 		if !hasInternet {
