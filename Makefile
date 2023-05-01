@@ -8,7 +8,7 @@ HOSTNAME=virtomize.com
 NAMESPACE=uii
 NAME=virtomize
 BINARY=terraform-provider-${NAME}
-OS_ARCH=darwin_amd64
+OS_ARCH=linux_amd64
 
 .PHONY: help
 help: ## Show this help.
