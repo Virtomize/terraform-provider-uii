@@ -53,9 +53,7 @@ func (p *uiiProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"apitoken": schema.StringAttribute{
-				Optional: true,
-				// todo: make this required, but default to env variable. Check back on
-				// https://discuss.hashicorp.com/t/terraform-plugin-framework-required-attribute-and-environment-variables/47505
+				Optional:            true,
 				Sensitive:           true,
 				Description:         fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable \"%s\".", TokenEnvName),
 				MarkdownDescription: fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable `%s`.", TokenEnvName),
@@ -122,12 +120,12 @@ func (p *uiiProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		return
 	}
 
-	client := &clientWithStorage{VirtomizeClient: c, StorageFolder: localPath, TimeProvider: defaultTimeProvider{}}
+	virtoClient := &clientWithStorage{VirtomizeClient: c, StorageFolder: localPath, TimeProvider: defaultTimeProvider{}}
 
 	// Make the client available during DataSource and Resource
 	// type Configure methods.
-	resp.ResourceData = client
-	resp.DataSourceData = client
+	resp.ResourceData = virtoClient
+	resp.DataSourceData = virtoClient
 }
 
 // DataSources defines the data sources implemented in the provider.
