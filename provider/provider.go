@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-//nolint: gosec // wrong
+// nolint: gosec // wrong
 const TokenEnvName = "VIRTOMIZE_API_TOKEN"
 const StorageEnvName = "VIRTOMIZE_ISO_CACHE"
 const ProviderName = "virtomize"
@@ -55,9 +55,7 @@ func (p *uiiProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"apitoken": schema.StringAttribute{
-				Optional: true,
-				// TODO: make this required, but default to env variable. Check back on
-				// https://discuss.hashicorp.com/t/terraform-plugin-framework-required-attribute-and-environment-variables/47505
+				Optional:            true,
 				Sensitive:           true,
 				Description:         fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable %q.", TokenEnvName),
 				MarkdownDescription: fmt.Sprintf("The API token for accessing Virtomize UII. If none is provided, the fallback is to use the environment variable `%s`.", TokenEnvName),

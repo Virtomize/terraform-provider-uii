@@ -60,56 +60,65 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 	}
 
 	{
-		internet := false
+		hasInternet := false
 		for _, n := range iso.Networks {
-			internet = internet || !n.NoInternet
-
-			//nolint: nestif // fine
-			if !n.DHCP {
-				ipError := validateCIDR(n.IPNet)
-				if ipError != nil {
-					result = append(result, ipError)
-				}
-
-				if n.MAC != "" {
-					_, macErr := net.ParseMAC(n.MAC)
-					if macErr != nil {
-						result = append(result, macErr)
-					}
-				}
-
-				if n.Gateway == "" {
-					result = append(result, ErrStaticNetworkNoGateway)
-				} else {
-					gwIP := net.ParseIP(n.Gateway)
-					if gwIP == nil {
-						gatewayErr := fmt.Errorf("%w:  %v is invalid", ErrStaticNetworkGatewayIP, n.Gateway)
-						result = append(result, gatewayErr)
-					}
-
-					_, ipNet, _ := net.ParseCIDR(n.IPNet)
-					if !ipNet.Contains(gwIP) {
-						result = append(result, ErrStaticNetworkGatewaySubnet)
-					}
-				}
-
-				if len(n.DNS) > 0 {
-					for _, ip := range n.DNS {
-						if net.ParseIP(ip) == nil {
-							dnsErr := fmt.Errorf("%w: dns ip %v is invalid", ErrStaticNetworkConfiguration, ip)
-							result = append(result, dnsErr)
-						}
-					}
-				}
+			validationErrors := validateNetwork(n)
+			if len(validationErrors) > 0 {
+				result = append(result, validationErrors...)
 			}
+			hasInternet = hasInternet || !n.NoInternet
 		}
 
-		if !internet {
-			result = append(result, ErrNoInternet)
+		if !hasInternet {
+			result = append(result, fmt.Errorf("ISO needs at least 1 configured with internet access"))
 		}
 	}
 
 	return result
+}
+
+func validateNetwork(n Network) []error {
+	var errors []error
+	if !n.DHCP {
+		ipError := validateCIDR(n.IPNet)
+		if ipError != nil {
+			errors = append(errors, ipError)
+		}
+
+		if n.MAC != "" {
+			_, macErr := net.ParseMAC(n.MAC)
+			if macErr != nil {
+				errors = append(errors, macErr)
+			}
+		}
+
+		if n.Gateway == "" {
+			gatewayErr := fmt.Errorf("static network configuration - no gateway defined set gateway parameter e.g 'gateway=192.168.0.1'")
+			errors = append(errors, gatewayErr)
+		} else {
+			gwIP := net.ParseIP(n.Gateway)
+			if gwIP == nil {
+				gatewayErr := fmt.Errorf("static network configuration - gateway ip %v is invalid", n.Gateway)
+				errors = append(errors, gatewayErr)
+			}
+
+			_, ipNet, _ := net.ParseCIDR(n.IPNet)
+			if !ipNet.Contains(gwIP) {
+				gatewayErr := fmt.Errorf("static network configuration - the gateway is not part of your defined subnet, this error occures if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
+				errors = append(errors, gatewayErr)
+			}
+		}
+
+		if len(n.DNS) > 0 {
+			for _, ip := range n.DNS {
+				if net.ParseIP(ip) == nil {
+					dnsErr := fmt.Errorf("static network configuration - dns ip %v is invalid", ip)
+					errors = append(errors, dnsErr)
+				}
+			}
+		}
+	}
+	return errors
 }
 
 func validateCIDR(value string) error {
