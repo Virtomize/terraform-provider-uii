@@ -13,7 +13,7 @@ import (
 
 func main() {
 	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
-		Address: "virtomize.com/uii/virtomize",
+		Address: "registry.terraform.io/Virtomize/uii",
 	})
 	if err != nil {
 		log.Fatal(err)
