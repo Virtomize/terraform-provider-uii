@@ -9,6 +9,8 @@ NAMESPACE=uii
 NAME=virtomize
 BINARY=terraform-provider-${NAME}
 OS_ARCH=linux_amd64
+OS_ARCH_WIN=windows_amd64
+TARGET_DIR_WIN := C:\Tools\Terraform\Plugins\${HOSTNAME}\${NAMESPACE}\${NAME}\${VERSION}\${OS_ARCH_WIN}
 
 .PHONY: help
 help: ## Show this help.
@@ -36,10 +38,18 @@ release: ## release terraform build.
 doc: ## release terraform build.
 	go generate ./...
 
+foo: ## release terraform build.
+	mkdir c:\foo\bar
+
 .PHONY: install
 install: build ## build terraform module.
+ifeq ($(OS),Windows_NT)
+	mkdir $(TARGET_DIR_WIN)
+	copy $(BINARY).exe $(TARGET_DIR_WIN)
+else
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+endif
 
 .PHONY: test
 test: ## Run tests.
