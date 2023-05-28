@@ -16,7 +16,7 @@ resource "virtomize_iso" "debian_iso" {
     password = "password123!"
     enable_ssh_authentication_through_password = true
     ssh_keys = [ "ssh key 1", "ssh key 2"]
-    timezone = [ "UTC"]
+    timezone = "Europe/Berlin"
     packages = [ "python"]
     networks = [{
       dhcp = true
@@ -34,8 +34,9 @@ resource "virtomize_iso" "debian_iso" {
 ```
 
 ### Local, keyboard and timezone
-The `local`, `keyboard` and `timezone` parameters can be used to customize region and input specific settings.
+The `local` and `keyboard` parameters can be used to customize region and input specific settings.
 They will default to English (`en-US`)
+The  `timezone` can be used to specify the desired time zone. It uses the IANA TZ identifier and defaults to `Europe/London`.
 
 ### Password and SSH
 By default, the OS will be setup with a `root` user and `virtomize` as the password.

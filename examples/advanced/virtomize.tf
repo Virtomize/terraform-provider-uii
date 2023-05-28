@@ -29,7 +29,7 @@ resource "virtomize_iso" "debian_iso" {
     password = "password123!"
     enable_ssh_authentication_through_password = true
     ssh_keys = [ "ssh key 1", "ssh key 2"]
-    timezone = [ "UTC"]
+    timezone = "Europe/Berlin"
     packages = [ "python"]
     networks = [{
       dhcp = true
