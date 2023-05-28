@@ -1,5 +1,5 @@
 # uii-terraform-provider
-This project is the terraform provider for integrate with Virtomize Unattended Installation ISO (UII) images into terraform.
+This project is the terraform provider for integrating with the Virtomize Unattended Installation ISO (UII) images into terraform.
 
 ## Use case
 An installation medium in required when installing a virtual machine. 
