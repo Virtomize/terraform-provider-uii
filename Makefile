@@ -38,9 +38,6 @@ release: ## release terraform build.
 doc: ## release terraform build.
 	go generate ./...
 
-foo: ## release terraform build.
-	mkdir c:\foo\bar
-
 .PHONY: install
 install: build ## build terraform module.
 ifeq ($(OS),Windows_NT)

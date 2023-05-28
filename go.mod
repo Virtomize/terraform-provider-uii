@@ -1,4 +1,4 @@
-module uii-terraform-framework-provider
+module terraform-provider-virtomize
 
 go 1.19
 

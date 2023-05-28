@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"uii-terraform-framework-provider/provider"
+	"terraform-provider-virtomize/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
@@ -13,7 +13,6 @@ import (
 
 func main() {
 	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
 		Address: "virtomize.com/uii/virtomize",
 	})
 	if err != nil {

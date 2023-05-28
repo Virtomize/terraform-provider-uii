@@ -1,4 +1,4 @@
-# uii-terraform-provider
+# terraform-provider-virtomize
 This project is the terraform provider for integrating with the Virtomize Unattended Installation ISO (UII) images into terraform.
 
 ## Use case
@@ -93,7 +93,7 @@ resource "virtomize_iso" "debian_iso" {
 # Contribution
 
 Thank you for contributing to this project.
-Please see our [Contribution Guidlines](https://github.com/virtomize/uii-terraform-provider/blob/master/CONTRIBUTING.md) for more in
+Please see our [Contribution Guidlines](https://github.com/virtomize/terraform-provider-virtomize/blob/master/CONTRIBUTING.md) for more in
 
 ## Pre-Commit
 
