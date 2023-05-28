@@ -62,7 +62,7 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 	{
 		hasInternet := false
 		for _, n := range iso.Networks {
-			validationErrors := validateNetwork(n)
+			validationErrors := validateNetwork(n, len(iso.Networks) > 1)
 			if len(validationErrors) > 0 {
 				result = append(result, validationErrors...)
 			}
@@ -77,7 +77,7 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 	return result
 }
 
-func validateNetwork(n Network) []error {
+func validateNetwork(n Network, needsMac bool) []error {
 	var errors []error
 	if !n.DHCP {
 		ipError := validateCIDR(n.IPNet)
@@ -90,6 +90,11 @@ func validateNetwork(n Network) []error {
 			if macErr != nil {
 				errors = append(errors, macErr)
 			}
+		}
+
+		if needsMac && n.MAC == "" {
+			macMissingErr := fmt.Errorf("multi network configuration - missing MAC address needed for multi network configuration")
+			errors = append(errors, macMissingErr)
 		}
 
 		if n.Gateway == "" {
