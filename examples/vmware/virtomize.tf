@@ -16,10 +16,10 @@ variable "virtomize_api_token" {
 }
 
 terraform {
-required_providers {
+  required_providers {
     virtomize = {
-      source  = "virtomize.com/uii/virtomize"
-        }
+      source  = "virtomize/uii"
+    }
   }
 }
 
@@ -83,7 +83,7 @@ resource "vsphere_virtual_machine" "terraformVM" {
   num_cpus   = 2
   memory     = 2048
   wait_for_guest_net_timeout = 0
-  guest_id = "centos7_64Guest"
+  guest_id = "debian10_64Guest"
   nested_hv_enabled =true
   network_interface {
     network_id     = "${data.vsphere_network.mgmt_lan.id}"

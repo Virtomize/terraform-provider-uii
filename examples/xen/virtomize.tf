@@ -5,10 +5,10 @@ variable "virtomize_api_token" {
 
 # set provider
 terraform {
-required_providers {
+  required_providers {
     virtomize = {
-      source  = "virtomize.com/uii/virtomize"
-        }
+      source  = "virtomize/uii"
+    }
   }
 }
 

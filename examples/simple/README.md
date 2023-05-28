@@ -15,10 +15,10 @@ The UII provider requires up to two parameters in its configuration:
 ```terraform
 # set provider
 terraform {
-required_providers {
+  required_providers {
     virtomize = {
-      source  = "virtomize.com/uii/virtomize"
-        }
+      source  = "virtomize/uii"
+    }
   }
 }
 

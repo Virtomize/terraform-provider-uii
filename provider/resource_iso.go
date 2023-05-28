@@ -147,8 +147,8 @@ func (r *IsoResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	iso, err := r.client.ReadIso(state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading Iso",
-			"Could not read ISO Id "+state.ID.ValueString()+": "+err.Error(),
+			"Error reading ISO from storage",
+			"Could not read ISO Id "+state.ID.ValueString()+". Try removing it from state file to force regeneration. Error was: "+err.Error(),
 		)
 		return
 	}
@@ -326,7 +326,7 @@ func stringListWithValidElements(list []types.String) []string {
 	return result
 }
 
-//nolint: unparam // not sure if this is always the case in the future
+// nolint: unparam // not sure if this is always the case in the future
 func stringOrDefault(data types.String, defaultValue string) string {
 	if data.IsUnknown() {
 		return defaultValue

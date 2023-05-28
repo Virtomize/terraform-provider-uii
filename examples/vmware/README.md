@@ -1,11 +1,11 @@
-# Create and install virtual machine VMmare
+# Create and install virtual machine VMware
 
 VMware ESXI and VSphere is a poplar hypervisor to run on premise virtual machines infrastructure.
 It offers am official Terraform provider that can be found in the [public terraform registry](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs).
 
 To use this provider together with the UII provider we need to set up a few pieces of configuration.
 
-## Setup the VMware provider
+## Set up the VMware provider
 
 The following example uses a local server and connects using username and password
 ```terraform
@@ -72,7 +72,7 @@ resource "vsphere_virtual_machine" "terraformVM" {
   num_cpus   = 2
   memory     = 2048
   wait_for_guest_net_timeout = 0
-  guest_id = "centos7_64Guest"
+  guest_id = "debian10_64Guest"
   nested_hv_enabled =true
   network_interface {
     network_id     = "${data.vsphere_network.mgmt_lan.id}"
