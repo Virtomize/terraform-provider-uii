@@ -1,4 +1,4 @@
-# Contributing to terraform-provider-virtomize
+# Contributing to terraform-provider-uii
 
 - [Code of Conduct](#code-of-conduct)
 - [Issues](#issues)
@@ -7,7 +7,7 @@
 
 ## Code of Conduct
 
-The terraform-provider-virtomize project follows the [Contributor Covenant Code of Conduct](https://github.com/virtomize/terraform-provider-virtomize/blob/master/CODE_OF_CONDUCT.md)
+The terraform-provider-uii project follows the [Contributor Covenant Code of Conduct](https://github.com/virtomize/terraform-provider-uii/blob/master/CODE_OF_CONDUCT.md)
 
 ## Issues
 
@@ -15,13 +15,13 @@ The terraform-provider-virtomize project follows the [Contributor Covenant Code 
 
 You can contribute:
 
-- By opening an issue for discussion: For example, if you found a bug, creating a bug report using the [template](https://github.com/virtomize/terraform-provider-virtomize/blob/master/.github/ISSUE_TEMPLATE/bug_report.md) is the way to report it.
+- By opening an issue for discussion: For example, if you found a bug, creating a bug report using the [template](https://github.com/virtomize/terraform-provider-uii/blob/master/.github/ISSUE_TEMPLATE/bug_report.md) is the way to report it.
 - By providing supporting details to an existing issue: For example, additional testcases.
-- By helping to resolve an issue: For example by opening a [Pull Request](https://github.com/virtomize/terraform-provider-virtomize/pulls)
+- By helping to resolve an issue: For example by opening a [Pull Request](https://github.com/virtomize/terraform-provider-uii/pulls)
 
 ### Asking for Help
 
-Just open a [regular issue](https://github.com/virtomize/terraform-provider-virtomize/issues/new) and describe your problem.
+Just open a [regular issue](https://github.com/virtomize/terraform-provider-uii/issues/new) and describe your problem.
 
 ## Pull Requests
 
@@ -31,12 +31,12 @@ This project uses [Mage](https://magefile.org/) which is a replacement for the c
 
 ### 1. Fork 
 
-Fork the project [on GitHub](https://github.com/virtomize/terraform-provider-virtomize/) and clone your fork
+Fork the project [on GitHub](https://github.com/virtomize/terraform-provider-uii/) and clone your fork
 
 ```
-$ git clone git@github.com:Virtomize/terraform-provider-virtomize.git
-$ cd terraform-provider-virtomize
-$ git remote add upstream https://github.com/virtomize/terraform-provider-virtomize.git
+$ git clone git@github.com:Virtomize/terraform-provider-uii.git
+$ cd terraform-provider-uii
+$ git remote add upstream https://github.com/virtomize/terraform-provider-uii.git
 $ git feth upstream
 ```
 

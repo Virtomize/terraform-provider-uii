@@ -1,4 +1,4 @@
 .idea/
-/terraform-provider-virtomize.exe
+/terraform-provider-uii.exe
 /testdata/isos
 *.out

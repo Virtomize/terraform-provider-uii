@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"terraform-provider-virtomize/provider"
+	"terraform-provider-uii/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
