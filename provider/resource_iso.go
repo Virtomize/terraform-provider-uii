@@ -3,12 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"time"
 
 	client "github.com/Virtomize/uii-go-api"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/tredoe/osutil/user/crypt/sha512_crypt"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -399,6 +400,11 @@ func hashPassword(password string) string {
 		return ""
 	}
 
-	hash := sha3.Sum512([]byte(password))
-	return string(hash[:])
+	hashFactory := sha512_crypt.New()
+	hash, err := hashFactory.Generate([]byte(password), []byte("$6$somesalt"))
+	if err != nil {
+		panic(err)
+	}
+
+	return string(hash)
 }
