@@ -73,7 +73,8 @@ resource "vsphere_virtual_machine" "terraformVM" {
   memory     = 2048
   wait_for_guest_net_timeout = 0
   guest_id = "debian10_64Guest"
-  nested_hv_enabled =true
+  nested_hv_enabled = true
+  
   network_interface {
     network_id     = "${data.vsphere_network.mgmt_lan.id}"
     adapter_type   = "vmxnet3"
@@ -90,5 +91,18 @@ resource "vsphere_virtual_machine" "terraformVM" {
     datastore_id = "${data.vsphere_datastore.datastore.id}"
     path         = "${resource.vsphere_file.install_iso.destination_file}"
   }
+}
+```
+
+## VMs with multiple network adapters
+To use multiple network adapters, follow 
+[the official documentation](https://registry.terraform.io/providers/hashicorp/vsphere/1.17.0/docs/resources/virtual_machine) 
+and add the `use_static_mac` and  `mac_address` properties to the individual network interfaces.
+
+```terraform
+  network_interface {
+    network_id     = "${data.vsphere_network.mgmt_lan.id}"
+    use_static_mac = true
+    mac_address    = "CA-8C-65-0D-E7-58"
 }
 ```
