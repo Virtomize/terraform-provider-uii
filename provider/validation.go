@@ -25,6 +25,7 @@ var (
 	ErrStaticNetworkGatewaySubnet  = errors.New("static network configuration error: the gateway is not part of your defined subnet, this error occures if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
 	ErrStaticNetworkGatewayIP      = errors.New("static network configuration error: invalid gateway ip")
 	ErrStaticNetworkNoGateway      = errors.New("static network configuration error: no gateway defined, set gateway parameter to e.g 'gateway=192.168.0.1'")
+	ErrMissingMac                  = errors.New("missing MAC address needed for multi network configuration")
 )
 
 func validateIso(iso Iso, distributions []client.OS) []error {
@@ -70,7 +71,7 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 		}
 
 		if !hasInternet {
-			result = append(result, fmt.Errorf("ISO needs at least 1 configured with internet access"))
+			result = append(result, ErrNoInternet)
 		}
 	}
 
@@ -79,50 +80,50 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 
 func validateNetwork(n Network, needsMac bool) []error {
 	var errors []error
-	if !n.DHCP {
-		ipError := validateCIDR(n.IPNet)
-		if ipError != nil {
-			errors = append(errors, ipError)
-		}
+	if n.DHCP {
+		return errors
+	}
 
-		if n.MAC != "" {
-			_, macErr := net.ParseMAC(n.MAC)
-			if macErr != nil {
-				errors = append(errors, macErr)
-			}
-		}
+	ipError := validateCIDR(n.IPNet)
+	if ipError != nil {
+		errors = append(errors, ipError)
+	}
 
-		if needsMac && n.MAC == "" {
-			macMissingErr := fmt.Errorf("multi network configuration - missing MAC address needed for multi network configuration")
-			errors = append(errors, macMissingErr)
+	if n.MAC != "" {
+		_, macErr := net.ParseMAC(n.MAC)
+		if macErr != nil {
+			errors = append(errors, macErr)
 		}
+	}
 
-		if n.Gateway == "" {
-			gatewayErr := fmt.Errorf("static network configuration - no gateway defined set gateway parameter e.g 'gateway=192.168.0.1'")
+	if needsMac && n.MAC == "" {
+		errors = append(errors, ErrMissingMac)
+	}
+
+	if n.Gateway == "" {
+		errors = append(errors, ErrStaticNetworkNoGateway)
+	} else {
+		gwIP := net.ParseIP(n.Gateway)
+		if gwIP == nil {
+			gatewayErr := fmt.Errorf("static network configuration - gateway ip %v is invalid", n.Gateway)
 			errors = append(errors, gatewayErr)
-		} else {
-			gwIP := net.ParseIP(n.Gateway)
-			if gwIP == nil {
-				gatewayErr := fmt.Errorf("static network configuration - gateway ip %v is invalid", n.Gateway)
-				errors = append(errors, gatewayErr)
-			}
-
-			_, ipNet, _ := net.ParseCIDR(n.IPNet)
-			if !ipNet.Contains(gwIP) {
-				gatewayErr := fmt.Errorf("static network configuration - the gateway is not part of your defined subnet, this error occures if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
-				errors = append(errors, gatewayErr)
-			}
 		}
 
-		if len(n.DNS) > 0 {
-			for _, ip := range n.DNS {
-				if net.ParseIP(ip) == nil {
-					dnsErr := fmt.Errorf("static network configuration - dns ip %v is invalid", ip)
-					errors = append(errors, dnsErr)
-				}
+		_, ipNet, _ := net.ParseCIDR(n.IPNet)
+		if !ipNet.Contains(gwIP) {
+			errors = append(errors, ErrStaticNetworkGatewaySubnet)
+		}
+	}
+
+	if len(n.DNS) > 0 {
+		for _, ip := range n.DNS {
+			if net.ParseIP(ip) == nil {
+				dnsErr := fmt.Errorf("static network configuration - dns ip %v is invalid", ip)
+				errors = append(errors, dnsErr)
 			}
 		}
 	}
+
 	return errors
 }
 
