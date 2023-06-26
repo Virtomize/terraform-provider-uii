@@ -34,6 +34,7 @@ resource "virtomize_iso" "debian_iso" {
     networks = [{
       dhcp = true
       no_internet = false
+      mac = "00-1B-63-84-45-E5"
 },{
       dhcp = false
       domain = "custom_domain"
