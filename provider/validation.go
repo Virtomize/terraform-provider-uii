@@ -105,7 +105,7 @@ func validateNetwork(n Network, needsMac bool) []error {
 	} else {
 		gwIP := net.ParseIP(n.Gateway)
 		if gwIP == nil {
-			gatewayErr := fmt.Errorf("static network configuration - gateway ip %v is invalid", n.Gateway)
+			gatewayErr := fmt.Errorf("static network configuration - gateway ip %s is invalid", n.Gateway)
 			errors = append(errors, gatewayErr)
 		}
 
@@ -118,7 +118,7 @@ func validateNetwork(n Network, needsMac bool) []error {
 	if len(n.DNS) > 0 {
 		for _, ip := range n.DNS {
 			if net.ParseIP(ip) == nil {
-				dnsErr := fmt.Errorf("static network configuration - dns ip %v is invalid", ip)
+				dnsErr := fmt.Errorf("static network configuration - dns ip %s is invalid", ip)
 				errors = append(errors, dnsErr)
 			}
 		}
