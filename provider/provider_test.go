@@ -17,7 +17,6 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 
 func TestSimpleIsoLifeCycle(t *testing.T) {
 	testConfiguration := `
-
 provider "virtomize" {
   # apitoken = retrieved from env variables
   # localstorage = use local folder

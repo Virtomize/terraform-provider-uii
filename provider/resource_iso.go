@@ -274,6 +274,7 @@ func parseIsoFromResourceModel(d isoResourceModel) Iso {
 	return iso
 }
 
+// parseNetworksFromSchema creates Networks, as they are stored or used in ISO generation from the Terraform resource model
 func parseNetworksFromSchema(networksModel []networksModel) []Network {
 	var networks []Network
 	for _, item := range networksModel {
@@ -284,6 +285,7 @@ func parseNetworksFromSchema(networksModel []networksModel) []Network {
 			networks = append(networks, Network{
 				DHCP:       dhcp,
 				NoInternet: noInternet,
+				MAC:        stringOrDefault(item.Mac, ""),
 			})
 		} else {
 			domain := stringOrDefault(item.Domain, "")
@@ -352,17 +354,28 @@ func boolOrDefault(data types.Bool, defaultValue bool) bool {
 	return data.ValueBool()
 }
 
+// transformNetworksToModel transforms a Network object as it is stored in the DB into iso into the terraform resource model
 func transformNetworksToModel(networks []Network) []networksModel {
 	var result []networksModel
 	for _, item := range networks {
 		if item.DHCP {
-			result = append(result,
-				networksModel{
-					Dhcp:       types.BoolValue(item.DHCP),
-					NoInternet: types.BoolValue(item.NoInternet),
-					Mac:        types.StringValue(item.MAC),
-				},
-			)
+			if item.MAC == "" {
+				// this can be the case for single network configurations
+				result = append(result,
+					networksModel{
+						Dhcp:       types.BoolValue(item.DHCP),
+						NoInternet: types.BoolValue(item.NoInternet),
+					},
+				)
+			} else {
+				result = append(result,
+					networksModel{
+						Dhcp:       types.BoolValue(item.DHCP),
+						NoInternet: types.BoolValue(item.NoInternet),
+						Mac:        types.StringValue(item.MAC),
+					},
+				)
+			}
 		} else {
 			var dnss []types.String
 			for _, dns := range item.DNS {
@@ -385,6 +398,7 @@ func transformNetworksToModel(networks []Network) []networksModel {
 	return result
 }
 
+// setIsoToModel writes the data from the stored iso into the terraform resource model
 func setIsoToModel(iso StoredIso, state *isoResourceModel) {
 	state.Name = types.StringValue(iso.Name)
 	state.Distribution = types.StringValue(iso.Distribution)

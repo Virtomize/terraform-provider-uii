@@ -1,6 +1,8 @@
 # terraform-provider-uii
 This project is the terraform provider for integrating with the Virtomize Unattended Installation ISO (UII) images into terraform.
 
+[Provider in te repository](https://registry.terraform.io/providers/Virtomize/uii/latest)
+
 ## Use case
 An installation medium in required when installing a virtual machine. 
 It can be hard to acquire and keep these up to date. 
@@ -106,4 +108,8 @@ Format commit messaged according to [Conventional Commits standard](https://www.
 ## Semantic Versioning
 
 Whenever you need to version something make use of [Semantic Versioning](https://semver.org).
+
+## Building a Release
+
+A new release is automatically created in the terraform repository if a new release is created in git.
 
