@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"time"
 
 	client "github.com/Virtomize/uii-go-api"
@@ -262,7 +263,7 @@ func parseIsoFromResourceModel(d isoResourceModel) Iso {
 		Optionals: BuildOpts{
 			Locale:          locale,
 			Keyboard:        keyboard,
-			Password:        password,
+			Password:        hashPassword(password),
 			SSHPasswordAuth: shhPasswordAuth,
 			SSHKeys:         nil,
 			Timezone:        timezone,
@@ -359,6 +360,7 @@ func transformNetworksToModel(networks []Network) []networksModel {
 				networksModel{
 					Dhcp:       types.BoolValue(item.DHCP),
 					NoInternet: types.BoolValue(item.NoInternet),
+					Mac:        types.StringValue(item.MAC),
 				},
 			)
 		} else {
@@ -390,4 +392,13 @@ func setIsoToModel(iso StoredIso, state *isoResourceModel) {
 	state.Hostname = types.StringValue(iso.HostName)
 	state.Networks = transformNetworksToModel(iso.Networks)
 	state.LocalPath = types.StringValue(iso.LocalPath)
+}
+
+func hashPassword(password string) string {
+	if password == "" {
+		return ""
+	}
+
+	hash := sha3.Sum512([]byte(password))
+	return string(hash[:])
 }
