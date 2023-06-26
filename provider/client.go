@@ -17,6 +17,8 @@ var (
 	ErrBucketNotFound    = errors.New("bucket not found")
 	ErrStoragePathNotSet = errors.New("storage path not set")
 	ErrClientInit        = errors.New("client not initialised")
+
+	DataBaseName = "uii.db"
 )
 
 // IUiiClient is an interface for abstracting the interactions with the UII service - used for testing
@@ -52,7 +54,7 @@ func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
 		return StoredIso{}, ErrStoragePathNotSet
 	}
 
-	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
+	db, err := setupDB(path.Join(s.StorageFolder, DataBaseName))
 	if err != nil {
 		log.Fatal(err)
 		return StoredIso{}, err
@@ -84,7 +86,7 @@ func (s *clientWithStorage) CreateIso(iso Iso) (StoredIso, error) {
 
 // ReadIso reads a ISO resource
 func (s *clientWithStorage) ReadIso(isoID string) (StoredIso, error) {
-	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
+	db, err := setupDB(path.Join(s.StorageFolder, DataBaseName))
 	if err != nil {
 		log.Fatal(err)
 		return StoredIso{}, err
@@ -116,7 +118,7 @@ func (s *clientWithStorage) ReadDistributions() ([]client.OS, error) {
 
 // DeleteIso reads a ISO resource
 func (s *clientWithStorage) DeleteIso(isoID string) error {
-	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
+	db, err := setupDB(path.Join(s.StorageFolder, DataBaseName))
 	if err != nil {
 		log.Panic(err)
 		return err
@@ -134,7 +136,7 @@ func (s *clientWithStorage) DeleteIso(isoID string) error {
 
 // UpdateIso updates a ISO resource
 func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
-	db, err := setupDB(path.Join(s.StorageFolder, "my.db"))
+	db, err := setupDB(path.Join(s.StorageFolder, DataBaseName))
 	if err != nil {
 		log.Panic(err)
 		return err
@@ -142,12 +144,8 @@ func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
 	defer db.Close()
 
 	oldIso, err := readIso(db, id)
-	if err != nil {
-		log.Panic(err)
-		return err
-	}
 
-	if requiresNewIsoFile(iso, oldIso) {
+	if err != nil || requiresNewIsoFile(iso, oldIso) {
 		// refresh iso and re-read, as path potentially updated
 		err = s.refreshIso(id, db)
 		if err != nil {
