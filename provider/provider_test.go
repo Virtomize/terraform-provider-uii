@@ -47,6 +47,43 @@ resource "virtomize_iso" "debian_iso" {
 	})
 }
 
+func TestSimpleIsoLifeCycleStaticConfig(t *testing.T) {
+	testConfiguration := `
+provider "virtomize" {
+  # apitoken = retrieved from env variables
+  # localstorage = use local folder
+}
+
+resource "virtomize_iso" "debian_iso" {
+    name = "debian_iso"
+    distribution = "debian"
+    version = "11"
+    hostname = "examplehost"
+    networks = [{
+      dhcp = false
+      domain = "custom_domain"
+      mac = "ca:8c:65:0d:e7:58"
+      ip_net = "10.0.0.0/24"
+      gateway = "10.0.0.1"
+      dns = ["1.1.1.1", "8.8.8.8"]
+      no_internet = false
+    }]
+ }`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testConfiguration,
+				Check: resource.ComposeTestCheckFunc(
+					checkSimpleIsoProperties,
+				),
+			},
+		},
+	})
+}
+
 func checkSimpleIsoProperties(state *terraform.State) error {
 	resource_name := "virtomize_iso.debian_iso"
 	rs, ok := state.RootModule().Resources[resource_name]
