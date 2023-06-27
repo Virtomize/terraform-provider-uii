@@ -324,7 +324,7 @@ func stringListWithValidElements(list []types.String) []string {
 			continue
 		}
 
-		result = append(result, item.String())
+		result = append(result, item.ValueString())
 	}
 
 	return result

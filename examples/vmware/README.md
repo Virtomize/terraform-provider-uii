@@ -99,10 +99,15 @@ To use multiple network adapters, follow
 [the official documentation](https://registry.terraform.io/providers/hashicorp/vsphere/1.17.0/docs/resources/virtual_machine) 
 and add the `use_static_mac` and  `mac_address` properties to the individual network interfaces.
 
+Notice that at least in our test the vSphere provider prefer MAC addresses to be in the format
+`xx:xx:xx:xx:xx:xx`
+instead of
+`xx-xx-xx-xx-xx-xx`.
+
 ```terraform
   network_interface {
     network_id     = "${data.vsphere_network.mgmt_lan.id}"
     use_static_mac = true
-    mac_address    = "CA-8C-65-0D-E7-58"
+    mac_address    = "ca:8c:65:0d:e7:57"
 }
 ```

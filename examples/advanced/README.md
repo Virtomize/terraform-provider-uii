@@ -21,11 +21,11 @@ resource "virtomize_iso" "debian_iso" {
     networks = [{
       dhcp = true
       no_internet = false,
-      mac = "00-1B-63-84-45-E5"
+      mac = "ca:8c:65:0d:e7:57"
 },{
       dhcp = false
       domain = "custom_domain"
-      mac = "00-1B-63-84-45-E6"
+      mac = "ca:8c:65:0d:e7:58"
       ip_net = "10.0.0.0/24"
       gateway = "10.0.0.1"
       dns = ["1.1.1.1", "8.8.8.8"]
@@ -82,7 +82,7 @@ Please consult your network admin for the correct values for these parameters.
 {
       dhcp = false
       domain = "custom_domain"
-      mac = "00-1B-63-84-45-E6"
+      mac = "ca:8c:65:0d:e7:58"
       ip_net = "10.0.0.0/24"
       gateway = "10.0.0.1"
       dns = ["1.1.1.1", "8.8.8.8"]
