@@ -80,16 +80,8 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 
 func validateNetwork(n Network, needsMac bool) []error {
 	var errors []error
-	if n.DHCP {
-		return errors
-	}
 
-	ipError := validateCIDR(n.IPNet)
-	if ipError != nil {
-		errors = append(errors, ipError)
-	}
-
-	if n.MAC != "" {
+	if n.MAC != "" && n.MAC != unknownString {
 		_, macErr := net.ParseMAC(n.MAC)
 		if macErr != nil {
 			errors = append(errors, macErr)
@@ -100,8 +92,20 @@ func validateNetwork(n Network, needsMac bool) []error {
 		errors = append(errors, ErrMissingMac)
 	}
 
+	if n.DHCP {
+		// only validate MAC in DHCP networks
+		return errors
+	}
+
+	ipError := validateCIDR(n.IPNet)
+	if ipError != nil {
+		errors = append(errors, ipError)
+	}
+
 	if n.Gateway == "" {
 		errors = append(errors, ErrStaticNetworkNoGateway)
+	} else if n.Gateway == unknownString {
+		// value not yet know (probably computed), don't validate
 	} else {
 		gwIP := net.ParseIP(n.Gateway)
 		if gwIP == nil {
@@ -146,6 +150,10 @@ func validateKeyboard(keyboard string) error {
 		return nil
 	}
 
+	if keyboard == unknownString {
+		return nil
+	}
+
 	_, err := language.Parse(keyboard)
 	if err != nil {
 		//nolint: errorlint // can't have two errors
@@ -164,6 +172,10 @@ func validateLocale(locale string) error {
 		return nil
 	}
 
+	if locale == unknownString {
+		return nil
+	}
+
 	_, err := language.Parse(locale)
 	if err != nil {
 		//nolint: errorlint // can't have two errors
@@ -179,6 +191,10 @@ func validateLocale(locale string) error {
 
 func validateTimezone(timeZone string) error {
 	if timeZone == "" {
+		return nil
+	}
+
+	if timeZone == unknownString {
 		return nil
 	}
 

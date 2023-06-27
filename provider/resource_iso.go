@@ -20,6 +20,8 @@ var (
 const (
 	errClientInit     = "Client not properly initialised"
 	errClientInitDesc = "The UII client is not properly initialised, which lead to an internal error."
+
+	unknownString = "string value not yet known"
 )
 
 // NewIsoResource is a helper function to simplify the provider implementation.
@@ -333,7 +335,7 @@ func stringListWithValidElements(list []types.String) []string {
 // nolint: unparam // not sure if this is always the case in the future
 func stringOrDefault(data types.String, defaultValue string) string {
 	if data.IsUnknown() {
-		return defaultValue
+		return unknownString
 	}
 
 	if data.IsNull() {
