@@ -145,7 +145,16 @@ func (s *clientWithStorage) UpdateIso(id string, iso Iso) error {
 
 	oldIso, err := readIso(db, id)
 
-	if err != nil || requiresNewIsoFile(iso, oldIso) {
+	if err != nil {
+		// error reading -> might be gone. Write a new one
+		oldIso, err = s.CreateIso(iso)
+		if err != nil {
+			log.Panic(err)
+			return err
+		}
+	}
+
+	if requiresNewIsoFile(iso, oldIso) {
 		// refresh iso and re-read, as path potentially updated
 		err = s.refreshIso(id, db)
 		if err != nil {
