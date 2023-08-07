@@ -96,7 +96,7 @@ func validateNetwork(n networksModel, needsMac bool) []error {
 	_, macErr := net.ParseMAC(mac)
 	if !n.Mac.IsUnknown() && mac == "" {
 		if macErr != nil {
-			errorList = append(errorList, macErr)
+			errorList = append(errorList, fmt.Errorf("%w : %s", macErr, mac))
 		}
 	}
 
