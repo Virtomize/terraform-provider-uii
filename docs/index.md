@@ -8,7 +8,9 @@ description: |-
 
 # virtomize-uii Provider
 
-
+Virtomize UII is a service that allows the creation of self installing installation ISOs.
+We currently support 15 different Linux distributions. 
+To learn more check out [UII website](https://uii.virtomize.com/images/new) or visit us the [Virtomize Website](https://virtomize.com/) 
 
 ## Example Usage
 
@@ -16,7 +18,7 @@ description: |-
 ## Configure the Virtomize-UII Provider
 provider "virtomize" {
   apitoken = "${var.virtomize_api_token}"
-  localstorage = "C:/Tools/Terraform/Isos"
+  localstorage = "/local/image/path"
 }
 ```
 
