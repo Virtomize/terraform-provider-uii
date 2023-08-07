@@ -29,6 +29,7 @@ var (
 	ErrStaticNetworkIsLoopBack     = errors.New("static network configuration error: configured CIDR is loop back address, use different IP")
 	ErrStaticNetworkIsMulticast    = errors.New("static network configuration error: configured CIDR is multi cast address, use different IP")
 	ErrMissingMac                  = errors.New("missing MAC address needed for multi network configuration")
+	ErrParsingMac                  = errors.New("parsing MAC address resulted in error")
 )
 
 func validateIso(plan isoResourceModel, distributions []client.OS) []error {
@@ -94,10 +95,9 @@ func validateNetwork(n networksModel, needsMac bool) []error {
 
 	mac := stringOrDefault(n.Mac, "")
 	_, macErr := net.ParseMAC(mac)
-	if !n.Mac.IsUnknown() && mac == "" {
-		if macErr != nil {
-			errorList = append(errorList, fmt.Errorf("%w : %s", macErr, mac))
-		}
+
+	if macErr != nil {
+		errorList = append(errorList, fmt.Errorf("%w %s : \"%s\"", ErrParsingMac, macErr, mac))
 	}
 
 	if needsMac && mac == "" {
