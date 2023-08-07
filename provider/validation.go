@@ -93,20 +93,21 @@ func validateIso(plan isoResourceModel, distributions []client.OS) []error {
 func validateNetwork(n networksModel, needsMac bool) []error {
 	var errorList []error
 
-	mac := stringOrDefault(n.Mac, "")
-	_, macErr := net.ParseMAC(mac)
-
-	if macErr != nil {
-		errorList = append(errorList, fmt.Errorf("%w %s : \"%s\"", ErrParsingMac, macErr, mac))
-	}
-
-	if needsMac && mac == "" {
-		errorList = append(errorList, ErrMissingMac)
+	if needsMac && !n.Mac.IsUnknown() {
+		mac := stringOrDefault(n.Mac, "")
+		if mac == "" || n.Mac.IsNull() {
+			errorList = append(errorList, ErrMissingMac)
+		} else {
+			_, macErr := net.ParseMAC(mac)
+			if macErr != nil {
+				errorList = append(errorList, fmt.Errorf("%w %s : \"%s\"", ErrParsingMac, macErr, mac))
+			}
+		}
 	}
 
 	dhcp := n.Dhcp.ValueBool()
 	if dhcp {
-		// only validate MAC in DHCP networks
+		// don't validate IP, Gateway, and DNS in DHCP networks as those setting will be retrieved
 		return errorList
 	}
 
