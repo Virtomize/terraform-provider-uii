@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"net"
 	"regexp"
 	"strings"
@@ -25,6 +26,8 @@ var (
 	ErrStaticNetworkGatewaySubnet  = errors.New("static network configuration error: the gateway is not part of your defined subnet, this error occurs if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
 	ErrStaticNetworkGatewayIP      = errors.New("static network configuration error: invalid gateway ip")
 	ErrStaticNetworkNoGateway      = errors.New("static network configuration error: no gateway defined, set gateway parameter to e.g 'gateway=192.168.0.1'")
+	ErrStaticNetworkIsLoopBack     = errors.New("static network configuration error: configured CIDR is loop back address, use different IP")
+	ErrStaticNetworkIsMulticast    = errors.New("static network configuration error: configured CIDR is multi cast address, use different IP")
 	ErrMissingMac                  = errors.New("missing MAC address needed for multi network configuration")
 )
 
@@ -87,55 +90,34 @@ func validateIso(plan isoResourceModel, distributions []client.OS) []error {
 }
 
 func validateNetwork(n networksModel, needsMac bool) []error {
-	var errors []error
+	var errorList []error
 
 	mac := stringOrDefault(n.Mac, "")
 	_, macErr := net.ParseMAC(mac)
 	if !n.Mac.IsUnknown() && mac == "" {
 		if macErr != nil {
-			errors = append(errors, macErr)
+			errorList = append(errorList, macErr)
 		}
 	}
 
 	if needsMac && mac == "" {
-		errors = append(errors, ErrMissingMac)
+		errorList = append(errorList, ErrMissingMac)
 	}
 
 	dhcp := n.Dhcp.ValueBool()
 	if dhcp {
 		// only validate MAC in DHCP networks
-		return errors
+		return errorList
 	}
 
-	if !n.IP.IsUnknown() {
-		ipNet := stringOrDefault(n.IP, "")
-		ipError := validateCIDR(ipNet)
+	{
+		ipError := validateCIDR(n.IP)
 		if ipError != nil {
-			errors = append(errors, ipError)
+			errorList = append(errorList, ipError)
 		}
 	}
 
-	if !n.Gateway.IsUnknown() {
-		gateway := stringOrDefault(n.Gateway, "")
-		if gateway == "" {
-			errors = append(errors, ErrStaticNetworkNoGateway)
-		} else {
-			gwIP := net.ParseIP(gateway)
-			if gwIP == nil {
-				gatewayErr := fmt.Errorf("static network configuration - gateway ip %s is invalid", n.Gateway)
-				errors = append(errors, gatewayErr)
-			}
-
-			// check that gateway is in CIDR of IP
-			if !n.IP.IsUnknown() {
-				networkIp := stringOrDefault(n.IP, "")
-				_, ipNet, _ := net.ParseCIDR(networkIp)
-				if !ipNet.Contains(gwIP) {
-					errors = append(errors, ErrStaticNetworkGatewaySubnet)
-				}
-			}
-		}
-	}
+	errorList = validateGateway(n, errorList)
 
 	if len(n.DNS) > 0 {
 		for _, ipPlan := range n.DNS {
@@ -143,17 +125,51 @@ func validateNetwork(n networksModel, needsMac bool) []error {
 				ip := ipPlan.ValueString()
 				if net.ParseIP(ip) == nil {
 					dnsErr := fmt.Errorf("static network configuration - dns ip %s is invalid", ip)
-					errors = append(errors, dnsErr)
+					errorList = append(errorList, dnsErr)
 				}
 			}
 		}
 	}
 
-	return errors
+	return errorList
 }
 
-func validateCIDR(value string) error {
-	_, _, err := net.ParseCIDR(value)
+func validateGateway(n networksModel, errorList []error) []error {
+	if n.Gateway.IsUnknown() {
+		return nil
+	}
+
+	gateway := stringOrDefault(n.Gateway, "")
+	if gateway == "" {
+		errorList = append(errorList, ErrStaticNetworkNoGateway)
+	} else {
+		gwIP := net.ParseIP(gateway)
+		if gwIP == nil {
+			gatewayErr := fmt.Errorf("static network configuration - gateway ip %s is invalid", n.Gateway)
+			errorList = append(errorList, gatewayErr)
+		}
+
+		// check that gateway is in CIDR of IP
+		if !n.IP.IsUnknown() {
+			networkIP := stringOrDefault(n.IP, "")
+			_, ipNet, _ := net.ParseCIDR(networkIP)
+			if !ipNet.Contains(gwIP) {
+				errorList = append(errorList, ErrStaticNetworkGatewaySubnet)
+			}
+		}
+	}
+
+	return errorList
+}
+
+func validateCIDR(cidrValue types.String) error {
+	if cidrValue.IsUnknown() {
+		return nil
+
+	}
+
+	ipNet := stringOrDefault(cidrValue, "")
+	parsedCidr, _, err := net.ParseCIDR(ipNet)
 
 	if err != nil {
 		//nolint: errorlint // can't have two errors
@@ -161,8 +177,17 @@ func validateCIDR(value string) error {
 			ErrCIDRRequired,
 			ipNetKey,
 			err.Error(),
-			value)
+			ipNet)
 	}
+
+	if parsedCidr.IsLoopback() {
+		return ErrStaticNetworkIsLoopBack
+	}
+
+	if parsedCidr.IsMulticast() {
+		return ErrStaticNetworkIsMulticast
+	}
+
 	return nil
 }
 
