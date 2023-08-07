@@ -82,15 +82,15 @@ func (r *IsoResource) Create(ctx context.Context, req resource.CreateRequest, re
 		distributions = []client.OS{}
 	}
 
-	iso := parseIsoFromResourceModel(plan)
-
-	errors := validateIso(iso, distributions)
+	errors := validateIso(plan, distributions)
 	if errors != nil {
 		for _, e := range errors {
 			resp.Diagnostics.AddError("Error validating iso", e.Error())
 		}
 		return
 	}
+
+	iso := parseIsoFromResourceModel(plan)
 
 	storedIso, err := r.client.CreateIso(iso)
 	if err != nil {
@@ -121,10 +121,7 @@ func (r IsoResource) ValidateConfig(ctx context.Context, req resource.ValidateCo
 	// fallback to allowing everything, as no client is present during the plan phase
 	var distributions []client.OS
 
-	iso := parseIsoFromResourceModel(data)
-
-	errors := validateIso(iso, distributions)
-
+	errors := validateIso(data, distributions)
 	for _, e := range errors {
 		resp.Diagnostics.AddError(
 			"Validation error",

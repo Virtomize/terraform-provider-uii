@@ -1,12 +1,12 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
 	"os"
 	"testing"
 )
@@ -80,6 +80,49 @@ resource "virtomize_iso" "debian_iso" {
 					checkSimpleIsoProperties,
 				),
 			},
+		},
+	})
+}
+
+func TestLoopBackIpIsDetectedByValidation(t *testing.T) {
+	testConfiguration := `
+provider "virtomize" {
+}
+
+resource "virtomize_iso" "debian_iso" {
+    name = "debian_iso"
+    distribution = "debian"
+    version = "11"
+    hostname = "examplehost"
+    networks = [{
+      dhcp = false
+      domain = "custom_domain"
+      mac = "ca:8c:65:0d:e7:58"
+      ip_net = "10.0.0.1/24"
+      gateway = "10.0.0.1"
+      dns = ["1.1.1.1", "8.8.8.8"]
+      no_internet = false
+    }]
+ }`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testConfiguration,
+				Check: resource.ComposeTestCheckFunc(
+					checkSimpleIsoProperties,
+				),
+			},
+		},
+		ErrorCheck: func(err error) error {
+			if err == nil {
+				return errors.New("expected error but got none")
+			}
+
+			// return original error if no match
+			return err
 		},
 	})
 }

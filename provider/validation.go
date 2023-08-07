@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"net"
 	"regexp"
 	"strings"
@@ -15,59 +16,70 @@ import (
 var (
 	ErrDistributionRequired        = errors.New("supported distribution required")
 	ErrDistributionVersionRequired = errors.New("supported distribution version required")
-	ErrInvalidHostname             = errors.New("valid hostname required, allowd characters are a-z,0-9 and -")
+	ErrInvalidHostname             = errors.New("valid hostname required, allowed characters are -, a-z, and 0-9")
 	ErrTimeZoneRequired            = errors.New("time zone or empty string required")
 	ErrLocaleRequired              = errors.New("valid BCP 47 locale or empty string required, e.g: (\"en-GB\")")
 	ErrKeyboardLayoutRequired      = errors.New("valid keyboard layout or empty string required, e.g: (\"en-GB\")")
 	ErrCIDRRequired                = errors.New("CIDR required e.g (\"192.168.129.23/17\")")
 	ErrNoInternet                  = errors.New("at least one network is required to provide internet access")
 	ErrStaticNetworkConfiguration  = errors.New("static network configuration error")
-	ErrStaticNetworkGatewaySubnet  = errors.New("static network configuration error: the gateway is not part of your defined subnet, this error occures if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
+	ErrStaticNetworkGatewaySubnet  = errors.New("static network configuration error: the gateway is not part of your defined subnet, this error occurs if e.g. ipnet=192.168.0.20/24 and gateway=192.168.1.1 since your defined subnet does not include the gateway ip")
 	ErrStaticNetworkGatewayIP      = errors.New("static network configuration error: invalid gateway ip")
 	ErrStaticNetworkNoGateway      = errors.New("static network configuration error: no gateway defined, set gateway parameter to e.g 'gateway=192.168.0.1'")
+	ErrStaticNetworkIsLoopBack     = errors.New("static network configuration error: configured CIDR is loop back address, use different IP")
+	ErrStaticNetworkIsMulticast    = errors.New("static network configuration error: configured CIDR is multi cast address, use different IP")
 	ErrMissingMac                  = errors.New("missing MAC address needed for multi network configuration")
+	ErrParsingMac                  = errors.New("parsing MAC address resulted in error")
 )
 
-func validateIso(iso Iso, distributions []client.OS) []error {
+func validateIso(plan isoResourceModel, distributions []client.OS) []error {
 	var result []error
 
-	{
-		hostNameError := validateHostname(iso.HostName)
+	if !plan.Hostname.IsUnknown() {
+		hostName := plan.Hostname.ValueString()
+		hostNameError := validateHostname(hostName)
 		if hostNameError != nil {
 			result = append(result, hostNameError)
 		}
 	}
 
-	{
-		err := validateDistribution(iso.Distribution, iso.Version, iso.Optionals.Arch, distributions)
+	if !plan.Distribution.IsUnknown() && !plan.Version.IsUnknown() {
+		distribution := plan.Distribution.ValueString()
+		version := plan.Version.ValueString()
+		architecture := stringOrDefault(plan.Architecture, "")
+
+		err := validateDistribution(distribution, version, architecture, distributions)
 		if err != nil {
 			result = append(result, err)
 		}
 	}
 
-	langErr := validateKeyboard(iso.Optionals.Keyboard)
+	keyboard := stringOrDefault(plan.Keyboard, "")
+	langErr := validateKeyboard(keyboard)
 	if langErr != nil {
 		result = append(result, langErr)
 	}
 
-	localeErr := validateLocale(iso.Optionals.Locale)
+	locale := stringOrDefault(plan.Locale, "")
+	localeErr := validateLocale(locale)
 	if localeErr != nil {
 		result = append(result, localeErr)
 	}
 
-	timeErr := validateTimezone(iso.Optionals.Timezone)
+	timezone := stringOrDefault(plan.Timezone, "")
+	timeErr := validateTimezone(timezone)
 	if localeErr != nil {
 		result = append(result, timeErr)
 	}
 
 	{
 		hasInternet := false
-		for _, n := range iso.Networks {
-			validationErrors := validateNetwork(n, len(iso.Networks) > 1)
+		for _, network := range plan.Networks {
+			validationErrors := validateNetwork(network, len(plan.Networks) > 1)
 			if len(validationErrors) > 0 {
 				result = append(result, validationErrors...)
 			}
-			hasInternet = hasInternet || !n.NoInternet
+			hasInternet = hasInternet || !network.NoInternet.ValueBool()
 		}
 
 		if !hasInternet {
@@ -78,61 +90,87 @@ func validateIso(iso Iso, distributions []client.OS) []error {
 	return result
 }
 
-func validateNetwork(n Network, needsMac bool) []error {
-	var errors []error
+func validateNetwork(n networksModel, needsMac bool) []error {
+	var errorList []error
 
-	if n.MAC != "" && n.MAC != unknownString {
-		_, macErr := net.ParseMAC(n.MAC)
-		if macErr != nil {
-			errors = append(errors, macErr)
-		}
-	}
-
-	if needsMac && n.MAC == "" {
-		errors = append(errors, ErrMissingMac)
-	}
-
-	if n.DHCP {
-		// only validate MAC in DHCP networks
-		return errors
-	}
-
-	ipError := validateCIDR(n.IPNet)
-	if ipError != nil {
-		errors = append(errors, ipError)
-	}
-
-	if n.Gateway == "" {
-		errors = append(errors, ErrStaticNetworkNoGateway)
-	} else if n.Gateway == unknownString {
-		// value not yet know (probably computed), don't validate
-	} else {
-		gwIP := net.ParseIP(n.Gateway)
-		if gwIP == nil {
-			gatewayErr := fmt.Errorf("static network configuration - gateway ip %s is invalid", n.Gateway)
-			errors = append(errors, gatewayErr)
-		}
-
-		_, ipNet, _ := net.ParseCIDR(n.IPNet)
-		if !ipNet.Contains(gwIP) {
-			errors = append(errors, ErrStaticNetworkGatewaySubnet)
-		}
-	}
-
-	if len(n.DNS) > 0 {
-		for _, ip := range n.DNS {
-			if net.ParseIP(ip) == nil {
-				dnsErr := fmt.Errorf("static network configuration - dns ip %s is invalid", ip)
-				errors = append(errors, dnsErr)
+	if needsMac && !n.Mac.IsUnknown() {
+		mac := stringOrDefault(n.Mac, "")
+		if mac == "" || n.Mac.IsNull() {
+			errorList = append(errorList, ErrMissingMac)
+		} else {
+			_, macErr := net.ParseMAC(mac)
+			if macErr != nil {
+				errorList = append(errorList, fmt.Errorf("%w %s : \"%s\"", ErrParsingMac, macErr, mac))
 			}
 		}
 	}
 
-	return errors
+	dhcp := n.Dhcp.ValueBool()
+	if dhcp {
+		// don't validate IP, Gateway, and DNS in DHCP networks as those setting will be retrieved
+		return errorList
+	}
+
+	{
+		ipError := validateCIDR(n.IP)
+		if ipError != nil {
+			errorList = append(errorList, ipError)
+		}
+	}
+
+	errorList = validateGateway(n, errorList)
+
+	if len(n.DNS) > 0 {
+		for _, ipPlan := range n.DNS {
+			if !ipPlan.IsUnknown() {
+				ip := ipPlan.ValueString()
+				if net.ParseIP(ip) == nil {
+					dnsErr := fmt.Errorf("static network configuration - dns ip %s is invalid", ip)
+					errorList = append(errorList, dnsErr)
+				}
+			}
+		}
+	}
+
+	return errorList
 }
 
-func validateCIDR(value string) error {
-	_, _, err := net.ParseCIDR(value)
+func validateGateway(n networksModel, errorList []error) []error {
+	if n.Gateway.IsUnknown() {
+		return nil
+	}
+
+	gateway := stringOrDefault(n.Gateway, "")
+	if gateway == "" {
+		errorList = append(errorList, ErrStaticNetworkNoGateway)
+	} else {
+		gwIP := net.ParseIP(gateway)
+		if gwIP == nil {
+			gatewayErr := fmt.Errorf("static network configuration - gateway ip %s is invalid", n.Gateway)
+			errorList = append(errorList, gatewayErr)
+		}
+
+		// check that gateway is in CIDR of IP
+		if !n.IP.IsUnknown() {
+			networkIP := stringOrDefault(n.IP, "")
+			_, ipNet, _ := net.ParseCIDR(networkIP)
+			if !ipNet.Contains(gwIP) {
+				errorList = append(errorList, ErrStaticNetworkGatewaySubnet)
+			}
+		}
+	}
+
+	return errorList
+}
+
+func validateCIDR(cidrValue types.String) error {
+	if cidrValue.IsUnknown() {
+		return nil
+
+	}
+
+	ipNet := stringOrDefault(cidrValue, "")
+	parsedCidr, _, err := net.ParseCIDR(ipNet)
 
 	if err != nil {
 		//nolint: errorlint // can't have two errors
@@ -140,8 +178,17 @@ func validateCIDR(value string) error {
 			ErrCIDRRequired,
 			ipNetKey,
 			err.Error(),
-			value)
+			ipNet)
 	}
+
+	if parsedCidr.IsLoopback() {
+		return ErrStaticNetworkIsLoopBack
+	}
+
+	if parsedCidr.IsMulticast() {
+		return ErrStaticNetworkIsMulticast
+	}
+
 	return nil
 }
 
@@ -231,7 +278,7 @@ func validateDistribution(distribution, version, architecture string, distributi
 	}
 
 	foundDistribution := false
-	displayNames := []string{}
+	var displayNames []string
 	for _, d := range distributions {
 		displayNames = append(displayNames, d.DisplayName)
 		if d.Distribution == distribution {
