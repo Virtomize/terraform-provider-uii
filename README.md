@@ -4,7 +4,7 @@ This project is the terraform provider for integrating with the Virtomize Unatte
 [Provider in the repository](https://registry.terraform.io/providers/Virtomize/uii/latest)
 
 ## Use case
-An installation medium in required when installing a virtual machine. 
+An installation medium is required when installing a virtual machine. 
 It can be hard to acquire and keep these up to date. 
 This is where UII comes into play.
 The UII provider will use Virtomize UII to create a custom ISO as specified in the Terraform config.
@@ -20,8 +20,8 @@ UII requires a token to access its API. Get yours for free on [the official webs
 
 ### Example 1 - The bare minimum
  
-Create a simple Debian 10 ISO. The host will be named `examplehost`. 
-The default root user will `root` with password `virtomize`.  
+Create a simple Debian ISO. The host will be named `examplehost`. 
+The default root user will be `root` with password `virtomize`.  
 
 ``` terraform
 provider "virtomize" {
@@ -31,7 +31,7 @@ provider "virtomize" {
 resource "virtomize_iso" "debian_iso" {
     name = "debian_iso"
     distribution = "debian"
-    version = "10"
+    version = "12"
     hostname = "examplehost"
     networks = [ {
       dhcp = true
